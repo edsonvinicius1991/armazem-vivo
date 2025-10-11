@@ -27,7 +27,13 @@ const Localizacoes = () => {
       if (error) throw error;
       setLocalizacoes(data || []);
     } catch (error: any) {
-      toast.error("Erro ao carregar localizações");
+      const msg = String(error?.message || "").toLowerCase();
+      if (error?.name === "AbortError" || msg.includes("abort")) {
+        // silencioso em caso de navegação/abort
+      } else {
+        toast.error("Erro ao carregar localizações");
+        console.error("Erro ao carregar localizações:", error);
+      }
     } finally {
       setLoading(false);
     }

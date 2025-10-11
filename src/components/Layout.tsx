@@ -26,6 +26,7 @@ const Layout = ({ children }: LayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -38,16 +39,27 @@ const Layout = ({ children }: LayoutProps) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      setAuthReady(true);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
+    if (!authReady) return;
     if (!session && location.pathname !== "/auth") {
-      navigate("/auth");
+      // Persist intended destination so Auth can redirect robustly
+      try {
+        const redirectTo = `${location.pathname}${location.search}${location.hash}`;
+        sessionStorage.setItem("auth:redirectTo", redirectTo);
+      } catch {}
+
+      navigate("/auth", {
+        state: { from: location },
+        replace: true,
+      });
     }
-  }, [session, location.pathname, navigate]);
+  }, [authReady, session, location, navigate]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

@@ -33,7 +33,13 @@ const Movimentacoes = () => {
       if (error) throw error;
       setMovimentacoes(data || []);
     } catch (error: any) {
-      toast.error("Erro ao carregar movimentações");
+      const msg = String(error?.message || "").toLowerCase();
+      if (error?.name === "AbortError" || msg.includes("abort")) {
+        // silencioso em caso de navegação/abort
+      } else {
+        toast.error("Erro ao carregar movimentações");
+        console.error("Erro ao carregar movimentações:", error);
+      }
     } finally {
       setLoading(false);
     }

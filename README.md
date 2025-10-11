@@ -1,73 +1,184 @@
-# Welcome to your Lovable project
+# Armazém Vivo - Sistema de Gestão de Armazém (WMS)
 
-## Project info
+Um sistema completo de gestão de armazém desenvolvido com React, TypeScript e Supabase.
 
-**URL**: https://lovable.dev/projects/55a2a9bf-272c-4e86-a45d-5859230bab57
+## 🚀 Funcionalidades
 
-## How can I edit this code?
+- **Dashboard Interativo**: Métricas em tempo real do armazém
+- **Gestão de Produtos**: Cadastro completo com controle de estoque
+- **Gestão de Localizações**: Organização hierárquica do armazém
+- **Controle de Movimentações**: Entrada, saída, transferência e ajustes
+- **Sistema de Relatórios**: Análises detalhadas de operações
+- **Controle de Acesso**: Sistema de roles e permissões
+- **Controle de Lotes**: Rastreabilidade completa
 
-There are several ways of editing your application.
+## 🛠️ Tecnologias
 
-**Use Lovable**
+### Frontend
+- **React 18.3.1** com TypeScript
+- **Vite 5.4.19** - Build tool
+- **Tailwind CSS 3.4.17** - Styling
+- **shadcn/ui** - Componentes UI
+- **React Router DOM** - Roteamento
+- **TanStack React Query** - State management
+- **React Hook Form + Zod** - Formulários e validação
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/55a2a9bf-272c-4e86-a45d-5859230bab57) and start prompting.
+### Backend
+- **Supabase** - Backend as a Service
+- **PostgreSQL** - Banco de dados
+- **Row Level Security (RLS)** - Segurança
 
-Changes made via Lovable will be committed automatically to this repo.
+## 📋 Pré-requisitos
 
-**Use your preferred IDE**
+- Node.js 18+ 
+- npm ou yarn
+- Conta no Supabase
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🔧 Instalação
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+1. **Clone o repositório**
+```bash
+git clone <url-do-repositorio>
+cd armazem-vivo
 ```
 
-**Edit a file directly in GitHub**
+2. **Instale as dependências**
+```bash
+npm install
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+3. **Configure as variáveis de ambiente**
+```bash
+# Copie o arquivo .env.example para .env
+cp .env.example .env
+```
 
-**Use GitHub Codespaces**
+Edite o arquivo `.env` com suas credenciais do Supabase:
+```env
+VITE_SUPABASE_PROJECT_ID="seu-project-id"
+VITE_SUPABASE_PUBLISHABLE_KEY="sua-publishable-key"
+VITE_SUPABASE_URL="https://seu-project-id.supabase.co"
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+4. **Execute as migrações do banco de dados**
+```bash
+# Se estiver usando Supabase CLI
+supabase db push
 
-## What technologies are used for this project?
+# Ou execute manualmente o arquivo SQL no painel do Supabase
+# supabase/migrations/20251011055216_b1c75494-265a-4fba-9e44-e7a52c416a3b.sql
+```
 
-This project is built with:
+## 🚀 Execução
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Desenvolvimento
+```bash
+npm run dev
+```
+A aplicação estará disponível em `http://localhost:8080`
 
-## How can I deploy this project?
+### Build para produção
+```bash
+npm run build
+```
 
-Simply open [Lovable](https://lovable.dev/projects/55a2a9bf-272c-4e86-a45d-5859230bab57) and click on Share -> Publish.
+### Preview da build
+```bash
+npm run preview
+```
 
-## Can I connect a custom domain to my Lovable project?
+## 📊 Estrutura do Banco de Dados
 
-Yes, you can!
+### Principais Tabelas
+- `profiles` - Perfis de usuário
+- `user_roles` - Roles e permissões
+- `almoxarifados` - Almoxarifados
+- `localizacoes` - Localizações físicas
+- `produtos` - Catálogo de produtos
+- `lotes` - Controle de lotes
+- `estoque_localizacao` - Estoque por localização
+- `movimentacoes` - Histórico de movimentações
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Tipos de Usuário
+- **Admin**: Acesso total ao sistema
+- **Gestor**: Gestão de almoxarifados e relatórios
+- **Supervisor**: Gestão de produtos e localizações
+- **Conferente**: Gestão de lotes e estoque
+- **Estoquista**: Operações básicas de movimentação
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## 🔐 Autenticação
+
+O sistema utiliza Supabase Auth para autenticação. Para criar o primeiro usuário administrador:
+
+1. Acesse o painel do Supabase
+2. Vá em Authentication > Users
+3. Crie um novo usuário
+4. Execute o SQL para adicionar role de admin:
+
+```sql
+INSERT INTO public.user_roles (user_id, role)
+VALUES ('uuid-do-usuario', 'admin');
+```
+
+## 📁 Estrutura do Projeto
+
+```
+src/
+├── components/          # Componentes reutilizáveis
+│   ├── ui/             # Componentes base do shadcn/ui
+│   ├── Layout.tsx      # Layout principal
+│   └── StatCard.tsx    # Card de estatísticas
+├── pages/              # Páginas da aplicação
+│   ├── Auth.tsx        # Página de login
+│   ├── Dashboard.tsx   # Dashboard principal
+│   ├── Produtos.tsx    # Gestão de produtos
+│   ├── Localizacoes.tsx # Gestão de localizações
+│   ├── Movimentacoes.tsx # Gestão de movimentações
+│   └── Relatorios.tsx  # Relatórios
+├── integrations/       # Integrações externas
+│   └── supabase/       # Configuração do Supabase
+├── hooks/              # Hooks customizados
+├── lib/                # Utilitários
+└── main.tsx           # Ponto de entrada
+```
+
+## 🎯 Roadmap
+
+### ✅ Fase 1 - MVP (Atual)
+- Estrutura base da aplicação
+- Sistema de autenticação
+- Dashboard básico
+- Visualização de produtos e localizações
+
+### 🔄 Fase 2 - Funcionalidades Completas
+- CRUD completo de produtos
+- CRUD completo de localizações
+- Sistema de movimentações funcional
+- Controle de lotes
+- Relatórios interativos
+
+### 📈 Fase 3 - Otimizações
+- Dashboard avançado com gráficos
+- Exportação de relatórios
+- Notificações em tempo real
+- Mobile app
+
+## 🤝 Contribuição
+
+1. Faça um fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
+
+## 📞 Suporte
+
+Para suporte, entre em contato através do email ou abra uma issue no repositório.
+
+---
+
+**Desenvolvido com ❤️ para otimizar operações de armazém**

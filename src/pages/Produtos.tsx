@@ -27,7 +27,13 @@ const Produtos = () => {
       if (error) throw error;
       setProdutos(data || []);
     } catch (error: any) {
-      toast.error("Erro ao carregar produtos");
+      const msg = String(error?.message || "").toLowerCase();
+      if (error?.name === "AbortError" || msg.includes("abort")) {
+        // silencioso em caso de navegação/abort
+      } else {
+        toast.error("Erro ao carregar produtos");
+        console.error("Erro ao carregar produtos:", error);
+      }
     } finally {
       setLoading(false);
     }

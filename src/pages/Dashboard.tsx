@@ -22,80 +22,82 @@ const Dashboard = () => {
   }, []);
 
   const loadDashboardData = async () => {
-    // Total de produtos
-    const { count: totalProdutos } = await supabase
-      .from("produtos")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "ativo");
+    try {
+      const { count: totalProdutos } = await supabase
+        .from("produtos")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "ativo");
 
-    // Total de localizações
-    const { count: totalLocalizacoes } = await supabase
-      .from("localizacoes")
-      .select("*", { count: "exact", head: true })
-      .eq("ativo", true);
+      const { count: totalLocalizacoes } = await supabase
+        .from("localizacoes")
+        .select("*", { count: "exact", head: true })
+        .eq("ativo", true);
 
-    // Valor do estoque (soma dos produtos com estoque)
-    const { data: estoqueData } = await supabase
-      .from("estoque_localizacao")
-      .select("quantidade, produtos!inner(custo_unitario)");
+      const { data: estoqueData } = await supabase
+        .from("estoque_localizacao")
+        .select("quantidade, produtos!inner(custo_unitario)");
 
-    let valorEstoque = 0;
-    if (estoqueData) {
-      valorEstoque = estoqueData.reduce((acc, item: any) => {
-        return acc + (item.quantidade * (item.produtos?.custo_unitario || 0));
-      }, 0);
-    }
+      let valorEstoque = 0;
+      if (estoqueData) {
+        valorEstoque = estoqueData.reduce((acc, item: any) => {
+          return acc + (item.quantidade * (item.produtos?.custo_unitario || 0));
+        }, 0);
+      }
 
-    // Movimentações de hoje
-    const hoje = new Date().toISOString().split("T")[0];
-    const { count: movimentacoesHoje } = await supabase
-      .from("movimentacoes")
-      .select("*", { count: "exact", head: true })
-      .gte("realizada_em", `${hoje}T00:00:00`);
+      const hoje = new Date().toISOString().split("T")[0];
+      const { count: movimentacoesHoje } = await supabase
+        .from("movimentacoes")
+        .select("*", { count: "exact", head: true })
+        .gte("realizada_em", `${hoje}T00:00:00`);
 
-    // Produtos abaixo do estoque mínimo
-    const { data: produtosEstoque } = await supabase
-      .from("produtos")
-      .select("id, sku, nome, estoque_minimo");
+      const { data: produtosEstoque } = await supabase
+        .from("produtos")
+        .select("id, sku, nome, estoque_minimo");
 
-    let produtosAbaixoMinimo = 0;
-    if (produtosEstoque) {
-      for (const produto of produtosEstoque) {
-        const { data: estoque } = await supabase
-          .from("estoque_localizacao")
-          .select("quantidade")
-          .eq("produto_id", produto.id);
+      let produtosAbaixoMinimo = 0;
+      if (produtosEstoque) {
+        for (const produto of produtosEstoque) {
+          const { data: estoque } = await supabase
+            .from("estoque_localizacao")
+            .select("quantidade")
+            .eq("produto_id", produto.id);
 
-        const qtdTotal = estoque?.reduce((acc, e) => acc + Number(e.quantidade), 0) || 0;
-        if (qtdTotal < (produto.estoque_minimo || 0)) {
-          produtosAbaixoMinimo++;
+          const qtdTotal = estoque?.reduce((acc, e) => acc + Number(e.quantidade), 0) || 0;
+          if (qtdTotal < (produto.estoque_minimo || 0)) {
+            produtosAbaixoMinimo++;
+          }
         }
       }
+
+      const { count: almoxarifadosAtivos } = await supabase
+        .from("almoxarifados")
+        .select("*", { count: "exact", head: true })
+        .eq("ativo", true);
+
+      setStats({
+        totalProdutos: totalProdutos || 0,
+        totalLocalizacoes: totalLocalizacoes || 0,
+        valorEstoque: valorEstoque,
+        movimentacoesHoje: movimentacoesHoje || 0,
+        produtosAbaixoEstoqueMinimo: produtosAbaixoMinimo,
+        almoxarifadosAtivos: almoxarifadosAtivos || 0,
+      });
+
+      const { data: movements } = await supabase
+        .from("movimentacoes")
+        .select("*, produtos(sku, nome), profiles(nome_completo)")
+        .order("realizada_em", { ascending: false })
+        .limit(5);
+
+      setRecentMovements(movements || []);
+    } catch (error: any) {
+      const msg = String(error?.message || "").toLowerCase();
+      if (error?.name === "AbortError" || msg.includes("abort")) {
+        // silencioso em caso de navegação/abort
+      } else {
+        console.error("Erro ao carregar dados do dashboard:", error);
+      }
     }
-
-    // Almoxarifados ativos
-    const { count: almoxarifadosAtivos } = await supabase
-      .from("almoxarifados")
-      .select("*", { count: "exact", head: true })
-      .eq("ativo", true);
-
-    setStats({
-      totalProdutos: totalProdutos || 0,
-      totalLocalizacoes: totalLocalizacoes || 0,
-      valorEstoque: valorEstoque,
-      movimentacoesHoje: movimentacoesHoje || 0,
-      produtosAbaixoEstoqueMinimo: produtosAbaixoMinimo,
-      almoxarifadosAtivos: almoxarifadosAtivos || 0,
-    });
-
-    // Carregar últimas movimentações
-    const { data: movements } = await supabase
-      .from("movimentacoes")
-      .select("*, produtos(sku, nome), profiles(nome_completo)")
-      .order("realizada_em", { ascending: false })
-      .limit(5);
-
-    setRecentMovements(movements || []);
   };
 
   const formatCurrency = (value: number) => {
