@@ -5,6 +5,8 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  // Configuração para GitHub Pages - ajuste o nome do repositório conforme necessário
+  base: mode === 'production' ? '/armazem-vivo/' : '/',
   server: {
     host: "::",
     port: 8080,

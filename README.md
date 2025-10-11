@@ -87,6 +87,39 @@ npm run build
 npm run preview
 ```
 
+## 🌐 Deploy no GitHub Pages
+
+Este projeto está configurado para deploy automático no GitHub Pages usando GitHub Actions.
+
+### Configuração Inicial
+
+1. **Faça push do código para o GitHub**
+```bash
+git add .
+git commit -m "Configuração inicial para GitHub Pages"
+git push origin main
+```
+
+2. **Configure as variáveis de ambiente no GitHub**
+   - Vá para Settings > Secrets and variables > Actions
+   - Adicione as seguintes secrets:
+     - `VITE_SUPABASE_PROJECT_ID`
+     - `VITE_SUPABASE_PUBLISHABLE_KEY`
+     - `VITE_SUPABASE_URL`
+
+3. **Habilite GitHub Pages**
+   - Vá para Settings > Pages
+   - Source: GitHub Actions
+   - O deploy será automático a cada push na branch main
+
+4. **Ajuste o base path no vite.config.ts**
+   - Certifique-se de que o `base` está configurado com o nome correto do repositório
+   - Exemplo: `base: '/nome-do-seu-repositorio/'`
+
+### URL de Acesso
+Após o deploy, a aplicação estará disponível em:
+`https://seu-usuario.github.io/nome-do-repositorio/`
+
 ## 📊 Estrutura do Banco de Dados
 
 ### Principais Tabelas
