@@ -4,13 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, MapPin, Warehouse } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Plus, Search, MapPin, Warehouse, Eye, Edit, Trash2, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
+import { LocalizacaoForm } from "@/components/forms/LocalizacaoForm";
+import { LocalizacaoDetailsDialog } from "@/components/dialogs/LocalizacaoDetailsDialog";
 
 const Localizacoes = () => {
   const [localizacoes, setLocalizacoes] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
+  const [selectedLocalizacao, setSelectedLocalizacao] = useState<any>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [localizacaoToDelete, setLocalizacaoToDelete] = useState<any>(null);
 
   useEffect(() => {
     loadLocalizacoes();
@@ -36,6 +46,47 @@ const Localizacoes = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateSuccess = () => {
+    setShowCreateDialog(false);
+    loadLocalizacoes();
+  };
+
+  const handleEditSuccess = () => {
+    setShowEditDialog(false);
+    setSelectedLocalizacao(null);
+    loadLocalizacoes();
+  };
+
+  const handleViewDetails = (localizacao: any) => {
+    setSelectedLocalizacao(localizacao);
+    setShowDetailsDialog(true);
+  };
+
+  const handleEdit = (localizacao: any) => {
+    setSelectedLocalizacao(localizacao);
+    setShowEditDialog(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!localizacaoToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from("localizacoes")
+        .delete()
+        .eq("id", localizacaoToDelete.id);
+
+      if (error) throw error;
+
+      toast.success("Localização excluída com sucesso!");
+      setLocalizacaoToDelete(null);
+      loadLocalizacoes();
+    } catch (error: any) {
+      console.error("Erro ao excluir localização:", error);
+      toast.error("Erro ao excluir localização");
     }
   };
 
@@ -72,10 +123,20 @@ const Localizacoes = () => {
           <h1 className="text-3xl font-bold tracking-tight">Localizações</h1>
           <p className="text-muted-foreground">Gerencie os endereços do almoxarifado</p>
         </div>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          Nova Localização
-        </Button>
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Nova Localização
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Criar Nova Localização</DialogTitle>
+            </DialogHeader>
+            <LocalizacaoForm onSuccess={handleCreateSuccess} />
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card className="shadow-md">
@@ -109,7 +170,7 @@ const Localizacoes = () => {
                 : "Nenhuma localização cadastrada ainda"}
             </p>
             {!searchTerm && (
-              <Button className="gap-2">
+              <Button className="gap-2" onClick={() => setShowCreateDialog(true)}>
                 <Plus className="h-4 w-4" />
                 Cadastrar Primeira Localização
               </Button>
@@ -132,9 +193,36 @@ const Localizacoes = () => {
                     </div>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <MapPin className="h-5 w-5 text-muted-foreground" />
-                      {loc.rua}-{loc.prateleira}-{loc.nivel}-{loc.box}
+                      {loc.nome}
                     </CardTitle>
+                    <p className="text-sm text-muted-foreground font-mono">
+                      {[loc.rua, loc.prateleira, loc.nivel, loc.posicao].filter(Boolean).join("-") || "Endereço não definido"}
+                    </p>
                   </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleViewDetails(loc)}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        Ver Detalhes
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEdit(loc)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => setLocalizacaoToDelete(loc)}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Excluir
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -148,19 +236,57 @@ const Localizacoes = () => {
                     <p className="font-medium">{loc.capacidade_maxima} UN</p>
                   </div>
                 )}
-                <div className="pt-2 flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1">
-                    Ver Conteúdo
-                  </Button>
-                  <Button variant="ghost" size="sm" className="flex-1">
-                    Editar
-                  </Button>
-                </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      {/* Dialog de Edição */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Localização</DialogTitle>
+          </DialogHeader>
+          {selectedLocalizacao && (
+            <LocalizacaoForm 
+              localizacao={selectedLocalizacao} 
+              onSuccess={handleEditSuccess} 
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Detalhes */}
+      {selectedLocalizacao && (
+        <LocalizacaoDetailsDialog
+          localizacao={selectedLocalizacao}
+          open={showDetailsDialog}
+          onOpenChange={setShowDetailsDialog}
+        />
+      )}
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <AlertDialog open={!!localizacaoToDelete} onOpenChange={() => setLocalizacaoToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a localização "{localizacaoToDelete?.codigo} - {localizacaoToDelete?.nome}"? 
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

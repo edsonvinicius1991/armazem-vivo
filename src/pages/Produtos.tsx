@@ -4,13 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Package, AlertTriangle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Plus, Search, Package, AlertTriangle, Eye, Edit, Trash2, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
+import { ProdutoForm } from "@/components/forms/ProdutoForm";
+import { ProdutoDetailsDialog } from "@/components/dialogs/ProdutoDetailsDialog";
 
 const Produtos = () => {
   const [produtos, setProdutos] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
+  const [selectedProduto, setSelectedProduto] = useState<any>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [produtoToDelete, setProdutoToDelete] = useState<any>(null);
 
   useEffect(() => {
     loadProdutos();
@@ -39,6 +49,47 @@ const Produtos = () => {
     }
   };
 
+  const handleCreateSuccess = () => {
+    setShowCreateDialog(false);
+    loadProdutos();
+  };
+
+  const handleEditSuccess = () => {
+    setShowEditDialog(false);
+    setSelectedProduto(null);
+    loadProdutos();
+  };
+
+  const handleViewDetails = (produto: any) => {
+    setSelectedProduto(produto);
+    setShowDetailsDialog(true);
+  };
+
+  const handleEdit = (produto: any) => {
+    setSelectedProduto(produto);
+    setShowEditDialog(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!produtoToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from("produtos")
+        .delete()
+        .eq("id", produtoToDelete.id);
+
+      if (error) throw error;
+
+      toast.success("Produto excluído com sucesso!");
+      setProdutoToDelete(null);
+      loadProdutos();
+    } catch (error: any) {
+      console.error("Erro ao excluir produto:", error);
+      toast.error("Erro ao excluir produto");
+    }
+  };
+
   const filteredProdutos = produtos.filter(
     (produto) =>
       produto.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -61,10 +112,20 @@ const Produtos = () => {
           <h1 className="text-3xl font-bold tracking-tight">Produtos</h1>
           <p className="text-muted-foreground">Gerencie o catálogo de produtos</p>
         </div>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          Novo Produto
-        </Button>
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Novo Produto
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Criar Novo Produto</DialogTitle>
+            </DialogHeader>
+            <ProdutoForm onSuccess={handleCreateSuccess} />
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card className="shadow-md">
@@ -118,6 +179,30 @@ const Produtos = () => {
                     </div>
                     <CardTitle className="text-lg mt-2">{produto.nome}</CardTitle>
                   </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleViewDetails(produto)}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        Ver Detalhes
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEdit(produto)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => setProdutoToDelete(produto)}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Excluir
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -142,19 +227,57 @@ const Produtos = () => {
                     <span className="text-xs">Estoque mín: {produto.estoque_minimo}</span>
                   </div>
                 )}
-                <div className="pt-2 flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1">
-                    Ver Detalhes
-                  </Button>
-                  <Button variant="ghost" size="sm" className="flex-1">
-                    Editar
-                  </Button>
-                </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      {/* Dialog de Edição */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Produto</DialogTitle>
+          </DialogHeader>
+          {selectedProduto && (
+            <ProdutoForm 
+              produto={selectedProduto} 
+              onSuccess={handleEditSuccess} 
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Detalhes */}
+      {selectedProduto && (
+        <ProdutoDetailsDialog
+          produto={selectedProduto}
+          open={showDetailsDialog}
+          onOpenChange={setShowDetailsDialog}
+        />
+      )}
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <AlertDialog open={!!produtoToDelete} onOpenChange={() => setProdutoToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o produto "{produtoToDelete?.nome}"? 
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

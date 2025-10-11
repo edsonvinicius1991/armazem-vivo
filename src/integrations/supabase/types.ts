@@ -393,6 +393,105 @@ export type Database = {
         }
         Relationships: []
       }
+      recebimentos: {
+        Row: {
+          created_at: string
+          data_esperada: string
+          documento: string
+          fornecedor: string
+          id: string
+          observacoes: string | null
+          status: Database["public"]["Enums"]["status_recebimento"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_esperada: string
+          documento: string
+          fornecedor: string
+          id?: string
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["status_recebimento"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_esperada?: string
+          documento?: string
+          fornecedor?: string
+          id?: string
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["status_recebimento"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      recebimento_itens: {
+        Row: {
+          created_at: string
+          custo_unitario: number | null
+          data_fabricacao: string | null
+          data_validade: string | null
+          id: string
+          localizacao_confirmada: string | null
+          localizacao_sugerida: string | null
+          numero_lote: string | null
+          observacoes: string | null
+          produto_id: string
+          quantidade_esperada: number
+          quantidade_recebida: number | null
+          recebimento_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custo_unitario?: number | null
+          data_fabricacao?: string | null
+          data_validade?: string | null
+          id?: string
+          localizacao_confirmada?: string | null
+          localizacao_sugerida?: string | null
+          numero_lote?: string | null
+          observacoes?: string | null
+          produto_id: string
+          quantidade_esperada: number
+          quantidade_recebida?: number | null
+          recebimento_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custo_unitario?: number | null
+          data_fabricacao?: string | null
+          data_validade?: string | null
+          id?: string
+          localizacao_confirmada?: string | null
+          localizacao_sugerida?: string | null
+          numero_lote?: string | null
+          observacoes?: string | null
+          produto_id?: string
+          quantidade_esperada?: number
+          quantidade_recebida?: number | null
+          recebimento_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recebimento_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recebimento_itens_recebimento_id_fkey"
+            columns: ["recebimento_id"]
+            isOneToOne: false
+            referencedRelation: "recebimentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           almoxarifado_id: string | null
@@ -441,6 +540,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "gestor" | "supervisor" | "conferente" | "estoquista"
       status_produto: "ativo" | "inativo" | "bloqueado"
+      status_recebimento: "pendente" | "em_conferencia" | "conferido" | "finalizado"
       tipo_localizacao: "picking" | "bulk" | "quarentena" | "expedicao"
       tipo_movimentacao:
         | "entrada"
@@ -577,6 +677,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "gestor", "supervisor", "conferente", "estoquista"],
       status_produto: ["ativo", "inativo", "bloqueado"],
+      status_recebimento: ["pendente", "em_conferencia", "conferido", "finalizado"],
       tipo_localizacao: ["picking", "bulk", "quarentena", "expedicao"],
       tipo_movimentacao: [
         "entrada",

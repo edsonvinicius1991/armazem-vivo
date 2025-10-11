@@ -131,6 +131,15 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Hero Image */}
+      <div className="w-full overflow-hidden rounded-lg shadow-sm">
+        <img 
+          src="/warehouse-tech-hero.svg" 
+          alt="Armazém Inteligente - Tecnologia e Automação" 
+          className="w-full h-auto max-h-[300px] object-cover object-center"
+        />
+      </div>
+
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">Visão geral do almoxarifado em tempo real</p>

@@ -5,7 +5,9 @@ import { Session, User } from "@supabase/supabase-js";
 import {
   LayoutDashboard,
   Package,
+  Package2,
   MapPin,
+  Truck,
   ArrowLeftRight,
   BarChart3,
   LogOut,
@@ -71,6 +73,8 @@ const Layout = ({ children }: LayoutProps) => {
     { icon: LayoutDashboard, label: "Dashboard", path: "/" },
     { icon: Package, label: "Produtos", path: "/produtos" },
     { icon: MapPin, label: "Localizações", path: "/localizacoes" },
+    { icon: Package2, label: "Lotes", path: "/lotes" },
+    { icon: Truck, label: "Recebimentos", path: "/recebimentos" },
     { icon: ArrowLeftRight, label: "Movimentações", path: "/movimentacoes" },
     { icon: BarChart3, label: "Relatórios", path: "/relatorios" },
   ];
