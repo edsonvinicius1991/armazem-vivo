@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import StatCard from "@/components/StatCard";
+import HologramAnimation from "@/components/HologramAnimation";
 import { Package, MapPin, TrendingUp, DollarSign, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -131,12 +132,11 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Hero Image */}
-      <div className="w-full overflow-hidden rounded-lg shadow-sm">
-        <img 
-          src="/warehouse-tech-hero.svg" 
-          alt="Armazém Inteligente - Tecnologia e Automação" 
-          className="w-full h-auto max-h-[300px] object-cover object-center"
+      {/* Hero Hologram Animation */}
+      <div className="w-full h-[180px] sm:h-[210px] md:h-[240px] lg:h-[270px] overflow-hidden rounded-lg shadow-sm bg-slate-900">
+        <HologramAnimation 
+          backgroundImage="/tech-warehouse.png"
+          className="w-full h-full"
         />
       </div>
 
