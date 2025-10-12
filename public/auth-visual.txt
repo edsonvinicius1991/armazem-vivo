@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema WMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-image: url('https://images.unsplash.com/photo-1621990733-771425115591?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            overflow: hidden; /* Hide scrollbars */
+            position: relative;
+        }
+
+        /* Dark overlay for better contrast */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 25, 47, 0.7); /* A dark blueish overlay */
+            z-index: 1;
+        }
+
+        /* Container for the animated particles */
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 2;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            animation: float 25s infinite linear;
+        }
+
+        /* Generate multiple particles with varied sizes and delays */
+        .particle:nth-child(1) { width: 7px; height: 7px; left: 15%; animation-duration: 22s; animation-delay: -3s; }
+        .particle:nth-child(2) { width: 4px; height: 4px; left: 35%; animation-duration: 28s; animation-delay: -1s; }
+        .particle:nth-child(3) { width: 6px; height: 6px; left: 55%; animation-duration: 19s; animation-delay: -5s; }
+        .particle:nth-child(4) { width: 3px; height: 3px; left: 75%; animation-duration: 35s; animation-delay: -7s; }
+        .particle:nth-child(5) { width: 5px; height: 5px; left: 95%; animation-duration: 24s; animation-delay: -2s; }
+        .particle:nth-child(6) { width: 4px; height: 4px; left: 5%; animation-duration: 30s; animation-delay: -10s; }
+        .particle:nth-child(7) { width: 6px; height: 6px; left: 25%; animation-duration: 20s; animation-delay: -4s; }
+        .particle:nth-child(8) { width: 3px; height: 3px; left: 45%; animation-duration: 40s; animation-delay: -8s; }
+        .particle:nth-child(9) { width: 5px; height: 5px; left: 65%; animation-duration: 26s; animation-delay: -1.5s; }
+        .particle:nth-child(10) { width: 7px; height: 7px; left: 85%; animation-duration: 18s; animation-delay: -6s; }
+        .particle:nth-child(11) { width: 4px; height: 4px; left: 50%; animation-duration: 32s; animation-delay: -9s; }
+        .particle:nth-child(12) { width: 6px; height: 6px; left: 20%; animation-duration: 21s; animation-delay: -11s; }
+
+
+        /* Keyframe animation for particles floating upwards */
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-10vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        /* Main content must be above the overlay and particles */
+        .main-content {
+            position: relative;
+            z-index: 3;
+        }
+
+        /* Custom styling for the tabs */
+        .tab-btn {
+            transition: all 0.3s ease-in-out;
+            border-bottom: 2px solid transparent;
+        }
+        .tab-btn.active {
+            color: #4f46e5; /* indigo-600 */
+            border-bottom-color: #4f46e5;
+        }
+        .tab-btn:not(.active) {
+            color: #6b7280; /* gray-500 */
+        }
+    </style>
+</head>
+<body class="bg-gray-900">
+
+    <!-- Animated Background -->
+    <div class="overlay"></div>
+    <div class="particles">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-white rounded-xl shadow-2xl overflow-hidden">
+            <!-- Header -->
+            <div class="p-8 text-center bg-gray-50">
+                <div class="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center">
+                    <i class="fa-solid fa-warehouse text-3xl text-indigo-600"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-gray-800 mt-4">Sistema WMS</h1>
+                <p class="text-gray-500 mt-1">Gestão Inteligente de Almoxarifado</p>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex border-b">
+                <button id="login-tab" class="tab-btn active w-1/2 py-4 font-semibold text-center">
+                    Entrar
+                </button>
+                <button id="register-tab" class="tab-btn w-1/2 py-4 font-semibold text-center">
+                    Cadastrar
+                </button>
+            </div>
+
+            <!-- Form Content -->
+            <div class="p-8">
+                <form id="login-form">
+                    <div class="mb-5">
+                        <label for="email" class="block mb-2 text-sm font-medium text-gray-600">E-mail</label>
+                        <input type="email" id="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition" value="edson.vinicius1991@gmail.com" required>
+                    </div>
+                    <div class="mb-6">
+                        <label for="password" class="block mb-2 text-sm font-medium text-gray-600">Senha</label>
+                        <input type="password" id="password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition" value="••••••••" required>
+                    </div>
+                    <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-300">
+                        Entrar
+                    </button>
+                </form>
+                 <form id="register-form" class="hidden">
+                    <p class="text-center text-gray-600">Funcionalidade de cadastro em breve.</p>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simple script to handle tab switching
+        const loginTab = document.getElementById('login-tab');
+        const registerTab = document.getElementById('register-tab');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+
+        loginTab.addEventListener('click', () => {
+            loginTab.classList.add('active');
+            registerTab.classList.remove('active');
+            loginForm.classList.remove('hidden');
+            registerForm.classList.add('hidden');
+        });
+
+        registerTab.addEventListener('click', () => {
+            registerTab.classList.add('active');
+            loginTab.classList.remove('active');
+            registerForm.classList.remove('hidden');
+            loginForm.classList.add('hidden');
+        });
+    </script>
+</body>
+</html>
+

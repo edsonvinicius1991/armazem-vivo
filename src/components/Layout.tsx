@@ -98,7 +98,7 @@ const Layout = ({ children }: LayoutProps) => {
           <div className="flex h-16 items-center justify-between px-4 sidebar-header-dark border-b">
             {sidebarOpen && (
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-primary">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg sidebar-logo-gradient">
                   <Warehouse className="h-5 w-5 text-primary-foreground" />
                 </div>
                 <span className="font-semibold text-lg">WMS</span>
@@ -107,9 +107,10 @@ const Layout = ({ children }: LayoutProps) => {
             <Button
               variant="ghost"
               size="icon"
+              className="sidebar-nav-item"
               onClick={() => setSidebarOpen(!sidebarOpen)}
             >
-              <Menu className="h-5 w-5" />
+              <Menu className="h-5 w-5 sidebar-icon" />
             </Button>
           </div>
 
@@ -121,13 +122,13 @@ const Layout = ({ children }: LayoutProps) => {
               return (
                 <Link key={item.path} to={item.path}>
                   <Button
-                    variant={isActive ? "secondary" : "ghost"}
+                    variant="ghost"
                     className={cn(
-                      "w-full justify-start gap-3",
-                      isActive && "bg-primary/10 text-primary font-medium"
+                      "w-full justify-start gap-3 sidebar-nav-item",
+                      isActive && "active font-medium"
                     )}
                   >
-                    <Icon className="h-5 w-5 flex-shrink-0" />
+                    <Icon className={cn("h-5 w-5 flex-shrink-0 sidebar-icon")} />
                     {sidebarOpen && <span>{item.label}</span>}
                   </Button>
                 </Link>
@@ -136,7 +137,7 @@ const Layout = ({ children }: LayoutProps) => {
           </nav>
 
           {/* User section */}
-          <div className="border-t border-border p-4">
+          <div className="sidebar-user-section border-t p-4">
             {/* Status de Sincronização */}
             {sidebarOpen && (
               <div className="mb-3">
@@ -145,7 +146,7 @@ const Layout = ({ children }: LayoutProps) => {
             )}
             
             <div className={cn("flex items-center gap-3", !sidebarOpen && "justify-center")}>
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold flex-shrink-0">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full sidebar-avatar font-semibold flex-shrink-0">
                 {user?.email?.[0].toUpperCase()}
               </div>
               {sidebarOpen && (
@@ -157,10 +158,10 @@ const Layout = ({ children }: LayoutProps) => {
             <Button
               variant="ghost"
               size={sidebarOpen ? "default" : "icon"}
-              className={cn("mt-3 w-full", sidebarOpen && "justify-start")}
+              className={cn("mt-3 w-full sidebar-nav-item", sidebarOpen && "justify-start")}
               onClick={handleLogout}
             >
-              <LogOut className="h-5 w-5 flex-shrink-0" />
+              <LogOut className="h-5 w-5 flex-shrink-0 sidebar-icon" />
               {sidebarOpen && <span className="ml-2">Sair</span>}
             </Button>
           </div>

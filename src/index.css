@@ -59,15 +59,19 @@ All colors MUST be HSL.
 
     --radius: 0.5rem;
 
-    /* Sidebar */
-    --sidebar-background: 220 65% 33%;
-    --sidebar-foreground: 220 15% 25%;
-    --sidebar-primary: 220 70% 45%;
+    /* Sidebar - Dark Theme */
+    --sidebar-background: 220 25% 8%;
+    --sidebar-foreground: 220 15% 85%;
+    --sidebar-primary: 220 70% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 70% 96%;
-    --sidebar-accent-foreground: 220 15% 25%;
-    --sidebar-border: 215 20% 88%;
-    --sidebar-ring: 220 70% 45%;
+    --sidebar-accent: 220 20% 15%;
+    --sidebar-accent-foreground: 220 15% 90%;
+    --sidebar-border: 220 20% 18%;
+    --sidebar-ring: 220 70% 55%;
+    --sidebar-header-background: 220 25% 6%;
+    --sidebar-nav-hover: 220 20% 12%;
+    --sidebar-nav-active: 220 70% 15%;
+    --sidebar-nav-active-foreground: 220 70% 65%;
 
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 hsl(220 20% 10% / 0.05);
@@ -122,14 +126,18 @@ All colors MUST be HSL.
     --input: 215 20% 18%;
     --ring: 220 70% 55%;
 
-    --sidebar-background: 220 65% 33%;
+    --sidebar-background: 220 25% 8%;
     --sidebar-foreground: 220 15% 85%;
     --sidebar-primary: 220 70% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 20% 18%;
-    --sidebar-accent-foreground: 220 15% 85%;
-    --sidebar-border: 215 20% 22%;
+    --sidebar-accent: 220 20% 15%;
+    --sidebar-accent-foreground: 220 15% 90%;
+    --sidebar-border: 220 20% 18%;
     --sidebar-ring: 220 70% 55%;
+    --sidebar-header-background: 220 25% 6%;
+    --sidebar-nav-hover: 220 20% 12%;
+    --sidebar-nav-active: 220 70% 15%;
+    --sidebar-nav-active-foreground: 220 70% 65%;
 
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.2);
     --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.3);
@@ -149,5 +157,68 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  /* Sidebar Dark Theme Components */
+  .sidebar-dark {
+    background-color: hsl(var(--sidebar-background));
+    color: hsl(var(--sidebar-foreground));
+    border-color: hsl(var(--sidebar-border));
+    box-shadow: 4px 0 12px hsl(0 0% 0% / 0.15);
+  }
+
+  .sidebar-header-dark {
+    background-color: hsl(var(--sidebar-header-background));
+    border-color: hsl(var(--sidebar-border));
+  }
+
+  .sidebar-nav-item {
+    @apply transition-all duration-200 ease-in-out rounded-lg;
+    position: relative;
+  }
+
+  .sidebar-nav-item:hover {
+    background-color: hsl(var(--sidebar-nav-hover));
+    color: hsl(var(--sidebar-foreground));
+    transform: translateX(2px);
+  }
+
+  .sidebar-nav-item.active {
+    background-color: hsl(var(--sidebar-nav-active));
+    color: hsl(var(--sidebar-nav-active-foreground));
+    border-left: 3px solid hsl(var(--sidebar-primary));
+    box-shadow: 0 2px 8px hsl(var(--sidebar-primary) / 0.2);
+  }
+
+  .sidebar-nav-item.active .sidebar-icon {
+    color: hsl(var(--sidebar-primary));
+  }
+
+  .sidebar-nav-item:hover .sidebar-icon {
+    color: hsl(var(--sidebar-primary));
+  }
+
+  .sidebar-user-section {
+    background-color: hsl(var(--sidebar-header-background));
+    border-color: hsl(var(--sidebar-border));
+  }
+
+  .sidebar-logo-gradient {
+    background: linear-gradient(135deg, hsl(var(--sidebar-primary)), hsl(220 70% 65%));
+    box-shadow: 0 2px 8px hsl(var(--sidebar-primary) / 0.3);
+  }
+
+  .sidebar-avatar {
+    background-color: hsl(var(--sidebar-nav-active));
+    color: hsl(var(--sidebar-primary));
+    border: 2px solid hsl(var(--sidebar-primary) / 0.3);
+    transition: all 0.2s ease-in-out;
+  }
+
+  .sidebar-avatar:hover {
+    border-color: hsl(var(--sidebar-primary));
+    box-shadow: 0 0 12px hsl(var(--sidebar-primary) / 0.4);
   }
 }
