@@ -72,6 +72,7 @@ const Layout = ({ children }: LayoutProps) => {
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+    { icon: Warehouse, label: "Estoque", path: "/estoque" },
     { icon: Package, label: "Produtos", path: "/produtos" },
     { icon: MapPin, label: "Locais", path: "/localizacoes" },
     { icon: Package2, label: "Lotes", path: "/lotes" },

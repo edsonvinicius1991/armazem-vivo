@@ -5,7 +5,12 @@ import HologramAnimation from "@/components/HologramAnimation";
 import { Package, MapPin, TrendingUp, DollarSign, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { KPICard, BarChart, LineChart, PieChart, Sparkline } from "@/components/charts";
+import KPICard from "@/components/charts/KPICard";
+import BarChart from "@/components/charts/BarChart";
+import LineChart from "@/components/charts/LineChart";
+import PieChart from "@/components/charts/PieChart";
+import Sparkline from "@/components/charts/Sparkline";
+import AlertasEstoque from "@/components/AlertasEstoque";
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -420,6 +425,22 @@ const Dashboard = () => {
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Seção de Alertas de Estoque */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5" />
+            Alertas de Estoque
+          </CardTitle>
+          <CardDescription>
+            Monitoramento de alertas críticos e produtos que requerem atenção
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AlertasEstoque />
         </CardContent>
       </Card>
     </div>
