@@ -53,7 +53,7 @@ export function LocalizacaoDetailsDialog({
       localizacao.rua,
       localizacao.prateleira,
       localizacao.nivel,
-      localizacao.posicao
+      localizacao.box
     ].filter(Boolean);
     
     return partes.length > 0 ? partes.join("-") : "Não definido";
@@ -80,14 +80,10 @@ export function LocalizacaoDetailsDialog({
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Código</p>
-                  <p className="text-lg font-mono">{localizacao.codigo}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Nome</p>
-                  <p className="text-lg">{localizacao.nome}</p>
-                </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Código</p>
+                <p className="text-lg font-mono">{localizacao.codigo}</p>
+              </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Tipo</p>
                   <Badge className={getTipoColor(localizacao.tipo)}>
@@ -136,12 +132,12 @@ export function LocalizacaoDetailsDialog({
             </CardContent>
           </Card>
 
-          {/* Capacidade e Dimensões */}
+          {/* Capacidade */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Ruler className="h-4 w-4" />
-                Capacidade e Dimensões
+                Capacidade
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -156,39 +152,6 @@ export function LocalizacaoDetailsDialog({
                       <span className="text-sm text-muted-foreground">Máxima (unidades):</span>
                       <span className="text-sm font-medium">
                         {formatNumber(localizacao.capacidade_maxima)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Peso (kg):</span>
-                      <span className="text-sm font-medium">
-                        {formatNumber(localizacao.capacidade_peso, " kg")}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <h4 className="font-medium flex items-center gap-2">
-                    <Ruler className="h-4 w-4" />
-                    Dimensões
-                  </h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Altura:</span>
-                      <span className="text-sm font-medium">
-                        {formatNumber(localizacao.altura, " cm")}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Largura:</span>
-                      <span className="text-sm font-medium">
-                        {formatNumber(localizacao.largura, " cm")}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Profundidade:</span>
-                      <span className="text-sm font-medium">
-                        {formatNumber(localizacao.profundidade, " cm")}
                       </span>
                     </div>
                   </div>

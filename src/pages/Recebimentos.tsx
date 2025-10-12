@@ -7,6 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { RecebimentoForm } from "@/components/forms/RecebimentoForm";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -24,7 +26,9 @@ import {
   Clock,
   AlertTriangle,
   MapPin,
-  Eye
+  Eye,
+  Grid3X3,
+  List
 } from "lucide-react";
 
 interface Recebimento {
@@ -48,6 +52,7 @@ export default function Recebimentos() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRecebimento, setEditingRecebimento] = useState<Recebimento | null>(null);
   const [modoForm, setModoForm] = useState<"criacao" | "conferencia" | "putaway">("criacao");
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
 
   useEffect(() => {
     loadRecebimentos();
@@ -261,7 +266,25 @@ export default function Recebimentos() {
 
       {/* Filtros */}
       <Card>
-        <CardContent className="pt-6">
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-lg">Filtros</CardTitle>
+            <ToggleGroup 
+              type="single" 
+              value={viewMode} 
+              onValueChange={(value) => value && setViewMode(value as "cards" | "table")}
+              className="border rounded-lg p-1"
+            >
+              <ToggleGroupItem value="cards" aria-label="Visualização em cards" size="sm">
+                <Grid3X3 className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="table" aria-label="Visualização em tabela" size="sm">
+                <List className="h-4 w-4" />
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+        </CardHeader>
+        <CardContent>
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
@@ -291,35 +314,35 @@ export default function Recebimentos() {
       </Card>
 
       {/* Lista de Recebimentos */}
-      <div className="grid gap-4">
-        {filteredRecebimentos.length === 0 ? (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-8">
-                <Package className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {searchTerm || statusFilter !== "todos" 
-                    ? "Nenhum recebimento encontrado" 
-                    : "Nenhum recebimento cadastrado"
-                  }
-                </h3>
-                <p className="text-gray-500 mb-4">
-                  {searchTerm || statusFilter !== "todos"
-                    ? "Tente ajustar os filtros de busca"
-                    : "Comece criando seu primeiro recebimento"
-                  }
-                </p>
-                {!searchTerm && statusFilter === "todos" && (
-                  <Button onClick={openCreateDialog}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Novo Recebimento
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          filteredRecebimentos.map((recebimento) => {
+      {filteredRecebimentos.length === 0 ? (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center py-8">
+              <Package className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {searchTerm || statusFilter !== "todos" 
+                  ? "Nenhum recebimento encontrado" 
+                  : "Nenhum recebimento cadastrado"
+                }
+              </h3>
+              <p className="text-gray-500 mb-4">
+                {searchTerm || statusFilter !== "todos"
+                  ? "Tente ajustar os filtros de busca"
+                  : "Comece criando seu primeiro recebimento"
+                }
+              </p>
+              {!searchTerm && statusFilter === "todos" && (
+                <Button onClick={openCreateDialog}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Novo Recebimento
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      ) : viewMode === "cards" ? (
+        <div className="grid gap-4">
+          {filteredRecebimentos.map((recebimento) => {
             const resumoItens = calcularResumoItens(recebimento.itens || []);
             
             return (
@@ -450,9 +473,123 @@ export default function Recebimentos() {
                 </CardContent>
               </Card>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Documento</TableHead>
+                  <TableHead>Fornecedor</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Data Prevista</TableHead>
+                  <TableHead>Data Recebimento</TableHead>
+                  <TableHead>Itens</TableHead>
+                  <TableHead>Divergências</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredRecebimentos.map((recebimento) => {
+                  const resumoItens = calcularResumoItens(recebimento.itens || []);
+                  
+                  return (
+                    <TableRow key={recebimento.id}>
+                      <TableCell className="font-medium">{recebimento.numero_documento}</TableCell>
+                      <TableCell>{recebimento.fornecedor}</TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(recebimento.status)}>
+                          {getStatusIcon(recebimento.status)}
+                          <span className="ml-1">{getStatusLabel(recebimento.status)}</span>
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{formatDate(recebimento.data_prevista)}</TableCell>
+                      <TableCell>
+                        {recebimento.data_recebimento ? formatDate(recebimento.data_recebimento) : "-"}
+                      </TableCell>
+                      <TableCell>{resumoItens.total}</TableCell>
+                      <TableCell>
+                        {resumoItens.divergencias > 0 ? (
+                          <Badge variant="outline" className="text-orange-600 border-orange-600">
+                            {resumoItens.divergencias}
+                          </Badge>
+                        ) : (
+                          "-"
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openEditDialog(recebimento)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Editar
+                            </DropdownMenuItem>
+                            
+                            {recebimento.status === "pendente" && (
+                              <DropdownMenuItem onClick={() => iniciarConferencia(recebimento)}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                Iniciar Conferência
+                              </DropdownMenuItem>
+                            )}
+                            
+                            {recebimento.status === "conferido" && (
+                              <DropdownMenuItem onClick={() => iniciarPutaway(recebimento)}>
+                                <MapPin className="h-4 w-4 mr-2" />
+                                Putaway
+                              </DropdownMenuItem>
+                            )}
+                            
+                            {recebimento.status === "conferido" && (
+                              <DropdownMenuItem onClick={() => handleStatusChange(recebimento.id, "finalizado")}>
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Finalizar
+                              </DropdownMenuItem>
+                            )}
+                            
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tem certeza que deseja excluir o recebimento "{recebimento.numero_documento}"? 
+                                    Esta ação não pode ser desfeita.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => handleDelete(recebimento.id)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Excluir
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

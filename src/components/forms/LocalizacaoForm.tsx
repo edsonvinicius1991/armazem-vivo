@@ -16,15 +16,14 @@ import { Loader2, MapPin } from "lucide-react";
 
 const localizacaoSchema = z.object({
   codigo: z.string().min(1, "Código é obrigatório").max(50, "Código deve ter no máximo 50 caracteres"),
-  nome: z.string().min(1, "Nome é obrigatório").max(100, "Nome deve ter no máximo 100 caracteres"),
-  tipo: z.enum(["picking", "bulk", "recebimento", "expedicao", "quarentena"], {
+  tipo: z.enum(["picking", "bulk", "quarentena"], {
     required_error: "Tipo é obrigatório"
   }),
   almoxarifado_id: z.string().min(1, "Almoxarifado é obrigatório"),
   rua: z.string().optional(),
   prateleira: z.string().optional(),
   nivel: z.string().optional(),
-  posicao: z.string().optional(),
+  box: z.string().optional(),
   capacidade_maxima: z.number().min(0, "Capacidade deve ser positiva").optional(),
   capacidade_peso: z.number().min(0, "Capacidade de peso deve ser positiva").optional(),
   altura: z.number().min(0, "Altura deve ser positiva").optional(),
@@ -58,13 +57,12 @@ export function LocalizacaoForm({ localizacao, onSuccess }: LocalizacaoFormProps
     resolver: zodResolver(localizacaoSchema),
     defaultValues: {
       codigo: localizacao?.codigo || "",
-      nome: localizacao?.nome || "",
       tipo: localizacao?.tipo || "picking",
       almoxarifado_id: localizacao?.almoxarifado_id || "",
       rua: localizacao?.rua || "",
       prateleira: localizacao?.prateleira || "",
       nivel: localizacao?.nivel || "",
-      posicao: localizacao?.posicao || "",
+      box: localizacao?.box || "",
       capacidade_maxima: localizacao?.capacidade_maxima || undefined,
       capacidade_peso: localizacao?.capacidade_peso || undefined,
       altura: localizacao?.altura || undefined,
@@ -101,14 +99,23 @@ export function LocalizacaoForm({ localizacao, onSuccess }: LocalizacaoFormProps
     setLoading(true);
     try {
       const payload = {
-        ...data,
+        codigo: data.codigo,
+        tipo: data.tipo,
+        almoxarifado_id: data.almoxarifado_id,
+        rua: data.rua || null,
+        prateleira: data.prateleira || null,
+        nivel: data.nivel || null,
+        box: data.box || null,
         capacidade_maxima: data.capacidade_maxima || null,
         capacidade_peso: data.capacidade_peso || null,
         altura: data.altura || null,
         largura: data.largura || null,
         profundidade: data.profundidade || null,
-        temperatura_min: data.temperatura_min || null,
-        temperatura_max: data.temperatura_max || null,
+        temperatura_min: data.temperatura_min ?? null,
+        temperatura_max: data.temperatura_max ?? null,
+        observacoes: data.observacoes || null,
+        ativo: data.ativo ?? true,
+        updated_at: new Date().toISOString(),
       };
 
       if (isEditing) {
@@ -140,8 +147,6 @@ export function LocalizacaoForm({ localizacao, onSuccess }: LocalizacaoFormProps
   const tipoOptions = [
     { value: "picking", label: "Picking" },
     { value: "bulk", label: "Bulk/Estoque" },
-    { value: "recebimento", label: "Recebimento" },
-    { value: "expedicao", label: "Expedição" },
     { value: "quarentena", label: "Quarentena" },
   ];
 
@@ -169,17 +174,7 @@ export function LocalizacaoForm({ localizacao, onSuccess }: LocalizacaoFormProps
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="nome">Nome *</Label>
-              <Input
-                id="nome"
-                {...register("nome")}
-                placeholder="Nome da localização"
-              />
-              {errors.nome && (
-                <p className="text-sm text-red-600">{errors.nome.message}</p>
-              )}
-            </div>
+            {/* Campo 'nome' removido: não existe na tabela remota */}
 
             <div className="space-y-2">
               <Label htmlFor="tipo">Tipo *</Label>
@@ -272,10 +267,10 @@ export function LocalizacaoForm({ localizacao, onSuccess }: LocalizacaoFormProps
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="posicao">Posição</Label>
+              <Label htmlFor="box">Box</Label>
               <Input
-                id="posicao"
-                {...register("posicao")}
+                id="box"
+                {...register("box")}
                 placeholder="Ex: A"
               />
             </div>

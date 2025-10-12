@@ -7,7 +7,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Package, Calendar, AlertTriangle, Eye, Edit, Trash2, MoreHorizontal, Filter } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Plus, Search, Package, Calendar, AlertTriangle, Eye, Edit, Trash2, MoreHorizontal, Filter, Grid3X3, List } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { LoteForm } from "@/components/forms/LoteForm";
@@ -19,6 +21,7 @@ export default function Lotes() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [validadeFilter, setValidadeFilter] = useState("todos");
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const [selectedLote, setSelectedLote] = useState<any>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -201,7 +204,27 @@ export default function Lotes() {
 
       {/* Filtros */}
       <Card>
-        <CardContent className="pt-6">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Filtros e Busca</CardTitle>
+            </div>
+            <ToggleGroup 
+              type="single" 
+              value={viewMode} 
+              onValueChange={(value) => value && setViewMode(value as "cards" | "table")}
+              className="border rounded-lg p-1"
+            >
+              <ToggleGroupItem value="cards" aria-label="Visualização em cards" size="sm">
+                <Grid3X3 className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="table" aria-label="Visualização em tabela" size="sm">
+                <List className="h-4 w-4" />
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+        </CardHeader>
+        <CardContent>
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
@@ -265,7 +288,7 @@ export default function Lotes() {
             )}
           </CardContent>
         </Card>
-      ) : (
+      ) : viewMode === "cards" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredLotes.map((lote) => {
             const dias = diasParaVencer(lote.data_validade);
@@ -372,6 +395,118 @@ export default function Lotes() {
             );
           })}
         </div>
+      ) : (
+        <Card className="shadow-md">
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Lote</TableHead>
+                  <TableHead>Produto</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Qtd. Atual</TableHead>
+                  <TableHead>Qtd. Inicial</TableHead>
+                  <TableHead>Validade</TableHead>
+                  <TableHead>Fornecedor</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredLotes.map((lote) => {
+                  const dias = diasParaVencer(lote.data_validade);
+                  const vencido = isVencido(lote.data_validade);
+                  
+                  return (
+                    <TableRow key={lote.id} className="hover:bg-muted/50">
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Package className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">{lote.numero}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{lote.produtos?.nome}</p>
+                          <p className="text-sm text-muted-foreground">{lote.produtos?.sku}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          <Badge className={getStatusColor(lote.status)}>
+                            {getStatusLabel(lote.status)}
+                          </Badge>
+                          {vencido && (
+                            <Badge variant="destructive" className="flex items-center gap-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              Vencido
+                            </Badge>
+                          )}
+                          {dias !== null && dias > 0 && dias <= 30 && (
+                            <Badge variant="outline" className="text-orange-600 border-orange-600">
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              {dias}d
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-semibold text-green-600">
+                          {lote.quantidade_atual?.toLocaleString("pt-BR")} {lote.produtos?.unidade_medida || "un"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-semibold text-blue-600">
+                          {lote.quantidade_inicial?.toLocaleString("pt-BR")} {lote.produtos?.unidade_medida || "un"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          {lote.data_validade ? (
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-3 w-3 text-muted-foreground" />
+                              {formatDate(lote.data_validade)}
+                            </div>
+                          ) : (
+                            "—"
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {lote.fornecedor || "—"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewDetails(lote)}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              Ver Detalhes
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEdit(lote)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => setLoteToDelete(lote)}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
 
       {/* Dialog de Edição */}

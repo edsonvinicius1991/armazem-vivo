@@ -6,8 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Plus, Search, Package, AlertTriangle, Eye, Edit, Trash2, MoreHorizontal, RefreshCw } from "lucide-react";
+import { Plus, Search, Package, AlertTriangle, Eye, Edit, Trash2, MoreHorizontal, RefreshCw, Grid3X3, List } from "lucide-react";
 import { toast } from "sonner";
 import { ProdutoForm } from "@/components/forms/ProdutoForm";
 import { ProdutoDetailsDialog } from "@/components/dialogs/ProdutoDetailsDialog";
@@ -21,6 +23,7 @@ const Produtos = () => {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [produtoToDelete, setProdutoToDelete] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
 
   // Estado para produtos
   const [produtos, setProdutos] = useState<any[]>([]);
@@ -160,7 +163,24 @@ const Produtos = () => {
 
       <Card className="shadow-md">
         <CardHeader>
-          <CardTitle className="text-lg">Pesquisar Produtos</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">Pesquisar Produtos</CardTitle>
+            <ToggleGroup 
+              type="single" 
+              value={viewMode} 
+              onValueChange={(value) => value && setViewMode(value as "cards" | "table")}
+              className="border rounded-md"
+            >
+              <ToggleGroupItem value="cards" aria-label="Visualização em cards" className="gap-2">
+                <Grid3X3 className="h-4 w-4" />
+                Cards
+              </ToggleGroupItem>
+              <ToggleGroupItem value="table" aria-label="Visualização em tabela" className="gap-2">
+                <List className="h-4 w-4" />
+                Tabela
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="relative">
@@ -196,7 +216,7 @@ const Produtos = () => {
             )}
           </CardContent>
         </Card>
-      ) : (
+      ) : viewMode === "cards" ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredProdutos.map((produto) => (
             <Card key={produto.id} className="shadow-md hover:shadow-lg transition-shadow">
@@ -261,6 +281,82 @@ const Produtos = () => {
             </Card>
           ))}
         </div>
+      ) : (
+        <Card className="shadow-md">
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>SKU</TableHead>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Unidade</TableHead>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead>Estoque Mín.</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredProdutos.map((produto) => (
+                  <TableRow key={produto.id} className="hover:bg-muted/50">
+                    <TableCell>
+                      <Badge variant="outline">{produto.sku}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{produto.nome}</p>
+                        {produto.descricao && (
+                          <p className="text-sm text-muted-foreground line-clamp-1">
+                            {produto.descricao}
+                          </p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(produto.status)}</TableCell>
+                    <TableCell>{produto.unidade}</TableCell>
+                    <TableCell>{produto.categoria || "—"}</TableCell>
+                    <TableCell>
+                      {produto.estoque_minimo > 0 ? (
+                        <div className="flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3 text-warning" />
+                          <span className="text-sm">{produto.estoque_minimo}</span>
+                        </div>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleViewDetails(produto)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            Ver Detalhes
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEdit(produto)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => setProdutoToDelete(produto)}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
 
       {/* Dialog de Edição */}

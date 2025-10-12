@@ -73,7 +73,7 @@ const Layout = ({ children }: LayoutProps) => {
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/" },
     { icon: Package, label: "Produtos", path: "/produtos" },
-    { icon: MapPin, label: "Localizações", path: "/localizacoes" },
+    { icon: MapPin, label: "Locais", path: "/localizacoes" },
     { icon: Package2, label: "Lotes", path: "/lotes" },
     { icon: Truck, label: "Recebimentos", path: "/recebimentos" },
     { icon: ArrowLeftRight, label: "Movimentações", path: "/movimentacoes" },
@@ -89,13 +89,13 @@ const Layout = ({ children }: LayoutProps) => {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-40 h-screen bg-card border-r border-border transition-all duration-300",
+          "fixed left-0 top-0 z-40 h-screen sidebar-dark border-r transition-all duration-300",
           sidebarOpen ? "w-64" : "w-20"
         )}
       >
         <div className="flex h-full flex-col">
           {/* Header */}
-          <div className="flex h-16 items-center justify-between px-4 border-b border-border">
+          <div className="flex h-16 items-center justify-between px-4 sidebar-header-dark border-b">
             {sidebarOpen && (
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-primary">
