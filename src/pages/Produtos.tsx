@@ -7,57 +7,52 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Plus, Search, Package, AlertTriangle, Eye, Edit, Trash2, MoreHorizontal } from "lucide-react";
+import { Plus, Search, Package, AlertTriangle, Eye, Edit, Trash2, MoreHorizontal, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { ProdutoForm } from "@/components/forms/ProdutoForm";
 import { ProdutoDetailsDialog } from "@/components/dialogs/ProdutoDetailsDialog";
+import { useSyncData } from "@/hooks/use-sync-data";
+import { useSyncContext } from "@/providers/SyncProvider";
 
 const Produtos = () => {
-  const [produtos, setProdutos] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(true);
   const [selectedProduto, setSelectedProduto] = useState<any>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [produtoToDelete, setProdutoToDelete] = useState<any>(null);
 
+  // Usando hooks de sincronização automática
+  const { forceSync } = useSyncContext();
+  const { 
+    data: produtos = [], 
+    loading, 
+    error,
+    refetch 
+  } = useSyncData({
+    table: 'produtos',
+    select: '*',
+    orderBy: { column: 'created_at', ascending: false },
+    enableRealtime: true
+  });
+
+  // Tratamento de erros
   useEffect(() => {
-    loadProdutos();
-  }, []);
-
-  const loadProdutos = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("produtos")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setProdutos(data || []);
-    } catch (error: any) {
-      const msg = String(error?.message || "").toLowerCase();
-      if (error?.name === "AbortError" || msg.includes("abort")) {
-        // silencioso em caso de navegação/abort
-      } else {
-        toast.error("Erro ao carregar produtos");
-        console.error("Erro ao carregar produtos:", error);
-      }
-    } finally {
-      setLoading(false);
+    if (error) {
+      toast.error("Erro ao carregar produtos");
+      console.error("Erro ao carregar produtos:", error);
     }
-  };
+  }, [error]);
 
   const handleCreateSuccess = () => {
     setShowCreateDialog(false);
-    loadProdutos();
+    // A sincronização automática cuidará da atualização dos dados
   };
 
   const handleEditSuccess = () => {
     setShowEditDialog(false);
     setSelectedProduto(null);
-    loadProdutos();
+    // A sincronização automática cuidará da atualização dos dados
   };
 
   const handleViewDetails = (produto: any) => {
@@ -83,7 +78,7 @@ const Produtos = () => {
 
       toast.success("Produto excluído com sucesso!");
       setProdutoToDelete(null);
-      loadProdutos();
+      // A sincronização automática cuidará da atualização dos dados
     } catch (error: any) {
       console.error("Erro ao excluir produto:", error);
       toast.error("Erro ao excluir produto");
@@ -112,20 +107,35 @@ const Produtos = () => {
           <h1 className="text-3xl font-bold tracking-tight">Produtos</h1>
           <p className="text-muted-foreground">Gerencie o catálogo de produtos</p>
         </div>
-        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Novo Produto
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Criar Novo Produto</DialogTitle>
-            </DialogHeader>
-            <ProdutoForm onSuccess={handleCreateSuccess} />
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => {
+              refetch();
+              forceSync();
+              toast.success("Sincronização forçada iniciada");
+            }}
+            className="gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Sincronizar
+          </Button>
+          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Novo Produto
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Criar Novo Produto</DialogTitle>
+              </DialogHeader>
+              <ProdutoForm onSuccess={handleCreateSuccess} />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Card className="shadow-md">

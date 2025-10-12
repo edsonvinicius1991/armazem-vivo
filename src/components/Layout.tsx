@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { SyncStatus, SyncIndicator } from "@/components/SyncStatus";
 
 interface LayoutProps {
   children: ReactNode;
@@ -136,6 +137,13 @@ const Layout = ({ children }: LayoutProps) => {
 
           {/* User section */}
           <div className="border-t border-border p-4">
+            {/* Status de Sincronização */}
+            {sidebarOpen && (
+              <div className="mb-3">
+                {/* <SyncIndicator /> */}
+              </div>
+            )}
+            
             <div className={cn("flex items-center gap-3", !sidebarOpen && "justify-center")}>
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold flex-shrink-0">
                 {user?.email?.[0].toUpperCase()}
