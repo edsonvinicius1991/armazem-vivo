@@ -1,21 +1,19 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Warehouse, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("edson.vinicius1991@gmail.com");
+  const [password, setPassword] = useState("••••••••");
   const [nomeCompleto, setNomeCompleto] = useState("");
+  const [activeTab, setActiveTab] = useState("login");
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -168,47 +166,86 @@ const Auth = () => {
   };
 
   return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4">
-        <Card className="w-full max-w-md shadow-xl">
-        <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-primary">
-            <Warehouse className="h-8 w-8 text-primary-foreground" />
+    <div className="auth-container">
+      {/* Animated Background */}
+      <div className="overlay"></div>
+      <div className="particles">
+        {Array.from({ length: 12 }, (_, i) => (
+          <div key={i} className="particle"></div>
+        ))}
+      </div>
+      
+      {/* Main Content */}
+      <div className="main-content min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-white rounded-xl shadow-2xl overflow-hidden">
+          {/* Header */}
+          <div className="p-8 text-center bg-gray-50">
+            <div className="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center">
+              <i className="fa-solid fa-warehouse text-3xl text-indigo-600"></i>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-800 mt-4">Sistema WMS</h1>
+            <p className="text-gray-500 mt-1">Gestão Inteligente de Almoxarifado</p>
           </div>
-          <CardTitle className="text-2xl font-bold">Sistema WMS</CardTitle>
-          <CardDescription>Gestão Inteligente de Almoxarifado</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Entrar</TabsTrigger>
-              <TabsTrigger value="signup">Cadastrar</TabsTrigger>
-            </TabsList>
 
-            <TabsContent value="login" className="space-y-4">
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="login-email">E-mail</Label>
+          {/* Tabs */}
+          <div className="flex border-b">
+            <button 
+              className={`tab-btn w-1/2 py-4 font-semibold text-center transition-all duration-300 border-b-2 ${
+                activeTab === 'login' 
+                  ? 'text-indigo-600 border-indigo-600' 
+                  : 'text-gray-500 border-transparent'
+              }`}
+              onClick={() => setActiveTab('login')}
+            >
+              Entrar
+            </button>
+            <button 
+              className={`tab-btn w-1/2 py-4 font-semibold text-center transition-all duration-300 border-b-2 ${
+                activeTab === 'register' 
+                  ? 'text-indigo-600 border-indigo-600' 
+                  : 'text-gray-500 border-transparent'
+              }`}
+              onClick={() => setActiveTab('register')}
+            >
+              Cadastrar
+            </button>
+          </div>
+
+          {/* Form Content */}
+          <div className="p-8">
+            {activeTab === 'login' ? (
+              <form onSubmit={handleLogin}>
+                <div className="mb-5">
+                  <Label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-600">
+                    E-mail
+                  </Label>
                   <Input
-                    id="login-email"
                     type="email"
-                    placeholder="seu@email.com"
+                    id="email"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="login-password">Senha</Label>
+                <div className="mb-6">
+                  <Label htmlFor="password" className="block mb-2 text-sm font-medium text-gray-600">
+                    Senha
+                  </Label>
                   <Input
-                    id="login-password"
                     type="password"
-                    placeholder="••••••••"
+                    id="password"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button 
+                  type="submit" 
+                  className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-300"
+                  disabled={loading}
+                >
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -219,45 +256,53 @@ const Auth = () => {
                   )}
                 </Button>
               </form>
-            </TabsContent>
-
-            <TabsContent value="signup" className="space-y-4">
-              <form onSubmit={handleSignup} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-name">Nome Completo</Label>
+            ) : (
+              <form onSubmit={handleSignup}>
+                <div className="mb-5">
+                  <Label htmlFor="nome" className="block mb-2 text-sm font-medium text-gray-600">
+                    Nome Completo
+                  </Label>
                   <Input
-                    id="signup-name"
                     type="text"
-                    placeholder="Seu nome completo"
+                    id="nome"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition"
                     value={nomeCompleto}
                     onChange={(e) => setNomeCompleto(e.target.value)}
                     required
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">E-mail</Label>
+                <div className="mb-5">
+                  <Label htmlFor="email-register" className="block mb-2 text-sm font-medium text-gray-600">
+                    E-mail
+                  </Label>
                   <Input
-                    id="signup-email"
                     type="email"
-                    placeholder="seu@email.com"
+                    id="email-register"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Senha</Label>
+                <div className="mb-6">
+                  <Label htmlFor="password-register" className="block mb-2 text-sm font-medium text-gray-600">
+                    Senha
+                  </Label>
                   <Input
-                    id="signup-password"
                     type="password"
-                    placeholder="••••••••"
+                    id="password-register"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={6}
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button 
+                  type="submit" 
+                  className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-300"
+                  disabled={loading}
+                >
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -268,10 +313,10 @@ const Auth = () => {
                   )}
                 </Button>
               </form>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
