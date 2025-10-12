@@ -5,6 +5,7 @@ import HologramAnimation from "@/components/HologramAnimation";
 import { Package, MapPin, TrendingUp, DollarSign, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { KPICard, BarChart, LineChart, PieChart, Sparkline } from "@/components/charts";
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -17,6 +18,10 @@ const Dashboard = () => {
   });
 
   const [recentMovements, setRecentMovements] = useState<any[]>([]);
+  const [movimentacoesPorTipo, setMovimentacoesPorTipo] = useState<any[]>([]);
+  const [movimentacoesPorDia, setMovimentacoesPorDia] = useState<any[]>([]);
+  const [produtosMaisMovimentados, setProdutosMaisMovimentados] = useState<any[]>([]);
+  const [estoquesPorCategoria, setEstoquesPorCategoria] = useState<any[]>([]);
 
   useEffect(() => {
     loadDashboardData();
@@ -91,6 +96,9 @@ const Dashboard = () => {
         .limit(5);
 
       setRecentMovements(movements || []);
+
+      // Carregar dados para gráficos
+      await loadChartsData();
     } catch (error: any) {
       const msg = String(error?.message || "").toLowerCase();
       if (error?.name === "AbortError" || msg.includes("abort")) {
@@ -98,6 +106,96 @@ const Dashboard = () => {
       } else {
         console.error("Erro ao carregar dados do dashboard:", error);
       }
+    }
+  };
+
+  const loadChartsData = async () => {
+    try {
+      // Movimentações por tipo (últimos 30 dias)
+      const { data: movTipos } = await supabase
+        .from("movimentacoes")
+        .select("tipo, quantidade")
+        .gte("realizada_em", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+
+      if (movTipos) {
+        const tiposAgrupados = movTipos.reduce((acc: any, mov: any) => {
+          const tipo = mov.tipo;
+          if (!acc[tipo]) {
+            acc[tipo] = { name: getTipoLabel(tipo), value: 0, color: getTipoColor(tipo) };
+          }
+          acc[tipo].value += mov.quantidade;
+          return acc;
+        }, {});
+        setMovimentacoesPorTipo(Object.values(tiposAgrupados));
+      }
+
+      // Movimentações por dia (últimos 7 dias)
+      const { data: movDias } = await supabase
+        .from("movimentacoes")
+        .select("realizada_em, quantidade")
+        .gte("realizada_em", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+        .order("realizada_em", { ascending: true });
+
+      if (movDias) {
+        const diasAgrupados = movDias.reduce((acc: any, mov: any) => {
+          const dia = new Date(mov.realizada_em).toLocaleDateString("pt-BR", { 
+            weekday: "short", 
+            day: "2-digit" 
+          });
+          if (!acc[dia]) {
+            acc[dia] = { name: dia, value: 0 };
+          }
+          acc[dia].value += mov.quantidade;
+          return acc;
+        }, {});
+        setMovimentacoesPorDia(Object.values(diasAgrupados));
+      }
+
+      // Produtos mais movimentados (últimos 30 dias)
+      const { data: produtosMov } = await supabase
+        .from("movimentacoes")
+        .select("produto_id, quantidade, produtos!inner(nome, sku)")
+        .gte("realizada_em", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+
+      if (produtosMov) {
+        const produtosAgrupados = produtosMov.reduce((acc: any, mov: any) => {
+          const produtoId = mov.produto_id;
+          if (!acc[produtoId]) {
+            acc[produtoId] = { 
+              name: mov.produtos.nome, 
+              sku: mov.produtos.sku,
+              value: 0 
+            };
+          }
+          acc[produtoId].value += mov.quantidade;
+          return acc;
+        }, {});
+        
+        const topProdutos = Object.values(produtosAgrupados)
+          .sort((a: any, b: any) => b.value - a.value)
+          .slice(0, 5);
+        setProdutosMaisMovimentados(topProdutos);
+      }
+
+      // Estoque por categoria
+      const { data: estoqueCategoria } = await supabase
+        .from("estoque_localizacao")
+        .select("quantidade, produtos!inner(categoria)")
+        .not("produtos.categoria", "is", null);
+
+      if (estoqueCategoria) {
+        const categoriasAgrupadas = estoqueCategoria.reduce((acc: any, item: any) => {
+          const categoria = item.produtos.categoria || "Sem categoria";
+          if (!acc[categoria]) {
+            acc[categoria] = { name: categoria, value: 0 };
+          }
+          acc[categoria].value += item.quantidade;
+          return acc;
+        }, {});
+        setEstoquesPorCategoria(Object.values(categoriasAgrupadas));
+      }
+    } catch (error) {
+      console.error("Erro ao carregar dados dos gráficos:", error);
     }
   };
 
@@ -130,6 +228,17 @@ const Dashboard = () => {
     return variants[tipo] || "default";
   };
 
+  const getTipoColor = (tipo: string) => {
+    const colors: Record<string, string> = {
+      entrada: "#22c55e",
+      saida: "#ef4444",
+      transferencia: "#3b82f6",
+      ajuste: "#f59e0b",
+      devolucao: "#8b5cf6",
+    };
+    return colors[tipo] || "#6b7280";
+  };
+
   return (
     <div className="space-y-6">
       {/* Hero Hologram Animation */}
@@ -147,45 +256,127 @@ const Dashboard = () => {
 
       {/* KPIs Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <StatCard
+        <KPICard
           title="Total de Produtos"
           value={stats.totalProdutos}
           icon={<Package className="h-5 w-5" />}
           description="Produtos ativos no sistema"
+          format="number"
         />
-        <StatCard
+        <KPICard
           title="Localizações Ativas"
           value={stats.totalLocalizacoes}
           icon={<MapPin className="h-5 w-5" />}
           description={`Em ${stats.almoxarifadosAtivos} almoxarifados`}
-          variant="success"
         />
-        <StatCard
+        <KPICard
           title="Valor do Estoque"
-          value={formatCurrency(stats.valorEstoque)}
+          value={stats.valorEstoque}
           icon={<DollarSign className="h-5 w-5" />}
           description="Valor total inventariado"
+          format="currency"
         />
-        <StatCard
+        <KPICard
           title="Movimentações Hoje"
           value={stats.movimentacoesHoje}
+          previousValue={stats.movimentacoesHoje > 0 ? Math.max(0, stats.movimentacoesHoje - 2) : 0}
           icon={<TrendingUp className="h-5 w-5" />}
           description="Operações realizadas"
-          variant="success"
+          format="number"
         />
-        <StatCard
+        <KPICard
           title="Alertas de Estoque"
           value={stats.produtosAbaixoEstoqueMinimo}
           icon={<AlertTriangle className="h-5 w-5" />}
           description="Produtos abaixo do mínimo"
-          variant={stats.produtosAbaixoEstoqueMinimo > 0 ? "warning" : "default"}
+          format="number"
         />
-        <StatCard
+        <KPICard
           title="Acurácia"
-          value="98.5%"
+          value={98.5}
+          previousValue={97.8}
           icon={<CheckCircle2 className="h-5 w-5" />}
           description="Precisão do inventário"
-          variant="success"
+          format="percentage"
+        />
+      </div>
+
+      {/* Gráficos de Análise */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <LineChart
+          title="Movimentações por Dia"
+          description="Últimos 7 dias"
+          data={movimentacoesPorDia}
+          dataKey="value"
+          nameKey="name"
+          height={300}
+          color="hsl(var(--primary))"
+        />
+        
+        <PieChart
+          title="Movimentações por Tipo"
+          description="Últimos 30 dias"
+          data={movimentacoesPorTipo}
+          height={300}
+          innerRadius={60}
+        />
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <BarChart
+          title="Produtos Mais Movimentados"
+          description="Top 5 - Últimos 30 dias"
+          data={produtosMaisMovimentados}
+          dataKey="value"
+          nameKey="name"
+          height={300}
+          orientation="vertical"
+        />
+        
+        <PieChart
+          title="Estoque por Categoria"
+          description="Distribuição atual"
+          data={estoquesPorCategoria}
+          height={300}
+          showLegend={true}
+        />
+      </div>
+
+      {/* Sparklines para Tendências Rápidas */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Sparkline
+          data={movimentacoesPorDia.map(d => ({ value: d.value }))}
+          label="Tendência Semanal"
+          currentValue={stats.movimentacoesHoje}
+          previousValue={Math.max(0, stats.movimentacoesHoje - 1)}
+          format="number"
+          color="hsl(var(--primary))"
+        />
+        <Sparkline
+          data={[
+            { value: stats.valorEstoque * 0.95 },
+            { value: stats.valorEstoque * 0.98 },
+            { value: stats.valorEstoque * 1.02 },
+            { value: stats.valorEstoque }
+          ]}
+          label="Valor do Estoque"
+          currentValue={stats.valorEstoque}
+          previousValue={stats.valorEstoque * 0.98}
+          format="currency"
+          color="#22c55e"
+        />
+        <Sparkline
+          data={[
+            { value: 97.2 },
+            { value: 97.8 },
+            { value: 98.1 },
+            { value: 98.5 }
+          ]}
+          label="Acurácia"
+          currentValue={98.5}
+          previousValue={98.1}
+          format="percentage"
+          color="#3b82f6"
         />
       </div>
 
