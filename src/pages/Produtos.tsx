@@ -149,7 +149,10 @@ const Produtos = () => {
               <DialogHeader>
                 <DialogTitle>Criar Novo Produto</DialogTitle>
               </DialogHeader>
-              <ProdutoForm onSuccess={handleCreateSuccess} />
+              <ProdutoForm 
+                onSuccess={handleCreateSuccess} 
+                onCancel={() => setShowCreateDialog(false)}
+              />
             </DialogContent>
           </Dialog>
         </div>
@@ -270,6 +273,7 @@ const Produtos = () => {
             <ProdutoForm 
               produto={selectedProduto} 
               onSuccess={handleEditSuccess} 
+              onCancel={() => setShowEditDialog(false)}
             />
           )}
         </DialogContent>

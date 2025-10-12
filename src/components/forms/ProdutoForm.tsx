@@ -18,7 +18,6 @@ const produtoSchema = z.object({
   categoria: z.string().optional(),
   unidade: z.string().min(1, "Unidade é obrigatória"),
   codigo_barras: z.string().optional(),
-  codigo_ean: z.string().optional(),
   peso_kg: z.number().min(0, "Peso deve ser positivo").optional(),
   altura_cm: z.number().min(0, "Altura deve ser positiva").optional(),
   largura_cm: z.number().min(0, "Largura deve ser positiva").optional(),
@@ -27,7 +26,6 @@ const produtoSchema = z.object({
   preco_venda: z.number().min(0, "Preço deve ser positivo").optional(),
   estoque_minimo: z.number().min(0, "Estoque mínimo deve ser positivo").default(0),
   estoque_maximo: z.number().min(0, "Estoque máximo deve ser positivo").optional(),
-  foto_url: z.string().url("URL inválida").optional().or(z.literal("")),
   controla_lote: z.boolean().default(false),
   controla_validade: z.boolean().default(false),
   status: z.enum(["ativo", "inativo", "bloqueado"]).default("ativo"),
@@ -81,7 +79,6 @@ export function ProdutoForm({ produto, onSuccess, onCancel }: ProdutoFormProps) 
       categoria: "",
       unidade: "UN",
       codigo_barras: "",
-      codigo_ean: "",
       peso_kg: undefined,
       altura_cm: undefined,
       largura_cm: undefined,
@@ -90,7 +87,6 @@ export function ProdutoForm({ produto, onSuccess, onCancel }: ProdutoFormProps) 
       preco_venda: undefined,
       estoque_minimo: 0,
       estoque_maximo: undefined,
-      foto_url: "",
       controla_lote: false,
       controla_validade: false,
       status: "ativo",
@@ -106,7 +102,6 @@ export function ProdutoForm({ produto, onSuccess, onCancel }: ProdutoFormProps) 
         categoria: produto.categoria || "",
         unidade: produto.unidade || "UN",
         codigo_barras: produto.codigo_barras || "",
-        codigo_ean: produto.codigo_ean || "",
         peso_kg: produto.peso_kg || undefined,
         altura_cm: produto.altura_cm || undefined,
         largura_cm: produto.largura_cm || undefined,
@@ -115,7 +110,6 @@ export function ProdutoForm({ produto, onSuccess, onCancel }: ProdutoFormProps) 
         preco_venda: produto.preco_venda || undefined,
         estoque_minimo: produto.estoque_minimo || 0,
         estoque_maximo: produto.estoque_maximo || undefined,
-        foto_url: produto.foto_url || "",
         controla_lote: produto.controla_lote || false,
         controla_validade: produto.controla_validade || false,
         status: produto.status || "ativo",
@@ -125,16 +119,25 @@ export function ProdutoForm({ produto, onSuccess, onCancel }: ProdutoFormProps) 
 
   const onSubmit = async (data: ProdutoFormData) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast.error("Usuário não autenticado");
-        return;
-      }
-
+      // Mapear os dados do formulário para as colunas da tabela produtos (migração ativa)
       const produtoData = {
-        ...data,
-        created_by: user.id,
+        sku: data.sku,
+        nome: data.nome,
+        descricao: data.descricao || null,
+        categoria: data.categoria || null,
+        unidade: data.unidade,
+        codigo_barras: data.codigo_barras || null,
+        peso_kg: data.peso_kg || null,
+        altura_cm: data.altura_cm || null,
+        largura_cm: data.largura_cm || null,
+        profundidade_cm: data.profundidade_cm || null,
+        custo_unitario: data.custo_unitario || null,
+        preco_venda: data.preco_venda || null,
+        estoque_minimo: data.estoque_minimo || 0,
+        estoque_maximo: data.estoque_maximo || null,
+        controla_lote: data.controla_lote || false,
+        controla_validade: data.controla_validade || false,
+        status: data.status,
         updated_at: new Date().toISOString(),
       };
 
@@ -262,19 +265,7 @@ export function ProdutoForm({ produto, onSuccess, onCancel }: ProdutoFormProps) 
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="codigo_ean"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Código EAN</FormLabel>
-                <FormControl>
-                  <Input placeholder="Ex: 7891234567890" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+
         </div>
 
         <FormField
@@ -457,23 +448,7 @@ export function ProdutoForm({ produto, onSuccess, onCancel }: ProdutoFormProps) 
           />
         </div>
 
-        <FormField
-          control={form.control}
-          name="foto_url"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>URL da Foto</FormLabel>
-              <FormControl>
-                <Input 
-                  type="url"
-                  placeholder="https://exemplo.com/foto.jpg"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <FormField
