@@ -11,8 +11,8 @@ import { Plus, Search, Package, AlertTriangle, Eye, Edit, Trash2, MoreHorizontal
 import { toast } from "sonner";
 import { ProdutoForm } from "@/components/forms/ProdutoForm";
 import { ProdutoDetailsDialog } from "@/components/dialogs/ProdutoDetailsDialog";
-import { useSyncData } from "@/hooks/use-sync-data";
-import { useSyncContext } from "@/providers/SyncProvider";
+// import { useSyncData } from "@/hooks/use-sync-data";
+// import { useSyncContext } from "@/providers/SyncProvider";
 
 const Produtos = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,19 +22,37 @@ const Produtos = () => {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [produtoToDelete, setProdutoToDelete] = useState<any>(null);
 
-  // Usando hooks de sincronização automática
-  const { forceSync } = useSyncContext();
-  const { 
-    data: produtos = [], 
-    loading, 
-    error,
-    refetch 
-  } = useSyncData({
-    table: 'produtos',
-    select: '*',
-    orderBy: { column: 'created_at', ascending: false },
-    enableRealtime: true
-  });
+  // Estado para produtos
+  const [produtos, setProdutos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Função para carregar produtos
+  const fetchProdutos = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const { data, error: fetchError } = await supabase
+        .from('produtos')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (fetchError) throw fetchError;
+      
+      setProdutos(data || []);
+    } catch (err: any) {
+      console.error('Erro ao carregar produtos:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Carregar produtos na inicialização
+  useEffect(() => {
+    fetchProdutos();
+  }, []);
 
   // Tratamento de erros
   useEffect(() => {
@@ -46,13 +64,13 @@ const Produtos = () => {
 
   const handleCreateSuccess = () => {
     setShowCreateDialog(false);
-    // A sincronização automática cuidará da atualização dos dados
+    fetchProdutos(); // Recarregar dados após criação
   };
 
   const handleEditSuccess = () => {
     setShowEditDialog(false);
     setSelectedProduto(null);
-    // A sincronização automática cuidará da atualização dos dados
+    fetchProdutos(); // Recarregar dados após edição
   };
 
   const handleViewDetails = (produto: any) => {
@@ -78,7 +96,7 @@ const Produtos = () => {
 
       toast.success("Produto excluído com sucesso!");
       setProdutoToDelete(null);
-      // A sincronização automática cuidará da atualização dos dados
+      fetchProdutos(); // Recarregar dados após exclusão
     } catch (error: any) {
       console.error("Erro ao excluir produto:", error);
       toast.error("Erro ao excluir produto");
@@ -112,9 +130,8 @@ const Produtos = () => {
             variant="outline" 
             size="sm" 
             onClick={() => {
-              refetch();
-              forceSync();
-              toast.success("Sincronização forçada iniciada");
+              fetchProdutos();
+              toast.success("Dados atualizados");
             }}
             className="gap-2"
           >
