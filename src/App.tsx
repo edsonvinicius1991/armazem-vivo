@@ -12,9 +12,11 @@ import Lotes from "./pages/Lotes";
 import Recebimentos from "./pages/Recebimentos";
 import Movimentacoes from "./pages/Movimentacoes";
 import Estoque from "./pages/Estoque";
+import TesteEstoque from "./pages/TesteEstoque";
 import Relatorios from "./pages/Relatorios";
 import NotFound from "./pages/NotFound";
 import { SyncProvider } from "./providers/SyncProvider";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
@@ -36,7 +38,17 @@ const App = () => (
             <Route path="/lotes" element={<Layout><Lotes /></Layout>} />
             <Route path="/recebimentos" element={<Layout><Recebimentos /></Layout>} />
             <Route path="/movimentacoes" element={<Layout><Movimentacoes /></Layout>} />
-            <Route path="/estoque" element={<Layout><Estoque /></Layout>} />
+            <Route
+              path="/estoque"
+              element={
+                <Layout>
+                  <ErrorBoundary>
+                    <Estoque />
+                  </ErrorBoundary>
+                </Layout>
+              }
+            />
+            <Route path="/teste-estoque" element={<TesteEstoque />} />
             <Route path="/relatorios" element={<Layout><Relatorios /></Layout>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

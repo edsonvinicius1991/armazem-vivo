@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import KPICard from "@/components/charts/KPICard";
 import BarChart from "@/components/charts/BarChart";
+import ParetoChart from "@/components/charts/ParetoChart";
 import LineChart from "@/components/charts/LineChart";
 import PieChart from "@/components/charts/PieChart";
 import Sparkline from "@/components/charts/Sparkline";
@@ -465,14 +466,13 @@ const Dashboard = () => {
           grid gap-6
           ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'}
         `}>
-          <BarChart
+          <ParetoChart
             title="Produtos Mais Movimentados"
             description={`Top 5 - ${getPeriodoConfig(periodoSelecionado).descricao}`}
             data={produtosMaisMovimentados}
             dataKey="value"
             nameKey="name"
             height={isMobile ? 280 : 300}
-            orientation="vertical"
           />
           
           <PieChart

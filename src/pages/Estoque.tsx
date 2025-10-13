@@ -42,6 +42,7 @@ const Estoque = () => {
     estoqueConsolidado,
     historicoEstoque,
     loading,
+    error,
     carregarEstoqueConsolidado,
     carregarHistoricoEstoque,
     obterEstatisticasEstoque,
@@ -224,7 +225,7 @@ const Estoque = () => {
             Gestão completa e consultas rápidas do estoque
           </p>
           {/* Debug info */}
-          {process.env.NODE_ENV === 'development' && (
+          {import.meta.env.DEV && (
             <p className="text-xs text-muted-foreground mt-1">
               Debug: {estoqueConsolidado.length} produtos carregados
             </p>
