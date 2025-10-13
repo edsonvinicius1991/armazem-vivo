@@ -1,0 +1,279 @@
+    <!DOCTYPE html>
+    <html lang="pt-br">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Holograma Animado de Logística</title>
+        <!-- Importa uma fonte com tema tecnológico do Google Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+        <style>
+            /* Estilos gerais para corpo da página e HTML */
+            body, html {
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                height: 100%;
+                background-color: #050810; /* Fundo escuro para mesclar com a imagem */
+                overflow: hidden; /* Evita barras de rolagem */
+                font-family: 'Orbitron', sans-serif; /* Define a fonte importada */
+            }
+
+            /* Contêiner principal que centraliza a animação */
+            #animation-container {
+                position: relative;
+                width: 100vw;
+                height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            /* Imagem de fundo */
+            #background-img {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                object-fit: cover; /* Garante que a imagem cubra todo o espaço */
+                filter: brightness(0.5) contrast(1.1); /* Escurece a imagem para destacar o holograma */
+                z-index: 1; /* Coloca a imagem atrás do canvas */
+            }
+
+            /* Canvas onde a animação é desenhada */
+            #hologram-canvas {
+                position: relative;
+                z-index: 2; /* Coloca o canvas na frente da imagem */
+                max-width: 100%;
+                max-height: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <!-- O contêiner da animação que inclui a imagem de fundo e o canvas -->
+        <div id="animation-container">
+            <!-- 
+                IMPORTANTE: Coloque sua imagem de fundo nesta pasta e nomeie-a 'tech-warehouse.png'
+                ou substitua o valor de 'src' pelo link da sua imagem.
+            -->
+            <img id="background-img" src="tech-warehouse.png" alt="Fundo do armazém de tecnologia" onerror="this.style.display='none'">
+            <canvas id="hologram-canvas"></canvas>
+        </div>
+
+        <script>
+            // Seleciona o elemento canvas e obtém o contexto de desenho 2D
+            const canvas = document.getElementById('hologram-canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Configurações de cores para o holograma
+            const hologramColor = '#00eaff';
+            const glowColor = 'rgba(0, 234, 255, 0.7)';
+            
+            // Variáveis de dimensão e centro
+            let width, height, centerX, centerY, radius;
+
+            // Variáveis de estado da animação
+            let angle = 0;
+            const barValues = [20, 15, 83];
+            const circlePercentages = [55, 75];
+            const particles = [];
+
+            // Função para configurar ou reconfigurar o canvas
+            function setup() {
+                const container = document.getElementById('animation-container');
+                const dpr = window.devicePixelRatio || 1;
+                
+                // Define o tamanho do canvas com base no contêiner
+                width = container.clientWidth;
+                height = container.clientHeight;
+                
+                canvas.width = width * dpr;
+                canvas.height = height * dpr;
+                canvas.style.width = `${width}px`;
+                canvas.style.height = `${height}px`;
+
+                ctx.scale(dpr, dpr);
+                
+                // Calcula o centro e o raio principal do holograma
+                centerX = width / 2;
+                centerY = height / 2;
+                radius = Math.min(width, height) * 0.18;
+
+                // Recria as partículas se o tamanho da tela mudar
+                createParticles();
+            }
+            
+            // --- FUNÇÕES DE DESENHO ---
+
+            // Desenha o globo central com pontos de dados simulados
+            function drawGlobe() {
+                ctx.strokeStyle = hologramColor;
+                ctx.lineWidth = 1;
+                ctx.shadowColor = glowColor;
+                ctx.shadowBlur = 25;
+
+                // Esfera principal
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Desenha pontos que se movem para simular um mapa de dados
+                particles.forEach(p => {
+                    ctx.beginPath();
+                    ctx.arc(centerX + p.x, centerY + p.y, p.size, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(0, 234, 255, ${p.opacity})`;
+                    ctx.fill();
+                    p.update(); // Atualiza a posição da partícula
+                });
+
+                ctx.shadowBlur = 0; // Reseta o brilho para outros elementos
+            }
+
+            // Desenha os anéis que rotacionam ao redor do globo
+            function drawRings() {
+                ctx.strokeStyle = hologramColor;
+                ctx.lineWidth = 2;
+                ctx.shadowColor = glowColor;
+                ctx.shadowBlur = 15;
+
+                // Anel 1 (rotação horária)
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius * 1.25, angle, angle + Math.PI * 1.6);
+                ctx.stroke();
+                
+                // Anel 2 (rotação anti-horária)
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius * 1.4, -angle * 0.8, -angle * 0.8 + Math.PI * 1.2);
+                ctx.stroke();
+                
+                ctx.shadowBlur = 0;
+            }
+
+            // Desenha os elementos de interface (gráficos e círculos)
+            function drawHUD() {
+                ctx.shadowColor = glowColor;
+                ctx.shadowBlur = 10;
+                
+                // Gráfico de barras à esquerda
+                const barChartX = centerX - radius * 3;
+                const barChartY = centerY;
+                const barWidth = 20;
+                const barSpacing = 10;
+                const maxHeight = 80;
+                
+                barValues.forEach((val, i) => {
+                    const barHeight = (val / 100) * maxHeight * (0.9 + Math.sin(angle * 2 + i * 2) * 0.1); // Anima a altura
+                    ctx.fillStyle = hologramColor;
+                    ctx.fillRect(barChartX + i * (barWidth + barSpacing), barChartY, barWidth, -barHeight);
+                    ctx.strokeStyle = 'rgba(0, 234, 255, 0.4)';
+                    ctx.strokeRect(barChartX + i * (barWidth + barSpacing), barChartY, barWidth, -maxHeight);
+                });
+
+                // Círculos de porcentagem à direita
+                const circle1X = centerX + radius * 2.2;
+                const circle1Y = centerY + radius * 0.8;
+                const circle2X = centerX + radius * 2.8;
+                const circle2Y = centerY - radius * 0.2;
+                
+                drawPercentageCircle(circle1X, circle1Y, 35, circlePercentages[0]);
+                drawPercentageCircle(circle2X, circle2Y, 50, circlePercentages[1]);
+
+                // Texto dinâmico na parte inferior
+                ctx.fillStyle = hologramColor;
+                ctx.font = '14px Orbitron';
+                ctx.textAlign = 'center';
+                const dynamicCode = `ZA132616624631524111 | SYS_STATUS: OK | ${Math.floor(Date.now() / 1000)}`;
+                ctx.fillText(dynamicCode, centerX, centerY + radius * 1.8);
+
+                ctx.shadowBlur = 0;
+            }
+
+            // Função auxiliar para desenhar um círculo de porcentagem
+            function drawPercentageCircle(x, y, r, percentage) {
+                const animatedPercentage = percentage * (0.98 + Math.sin(angle * 3 + x) * 0.02);
+                const endAngle = (Math.PI * 2 / 100) * animatedPercentage - Math.PI / 2;
+
+                // Círculo de fundo
+                ctx.strokeStyle = 'rgba(0, 234, 255, 0.3)';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Arco de preenchimento
+                ctx.strokeStyle = hologramColor;
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(x, y, r, -Math.PI / 2, endAngle);
+                ctx.stroke();
+                
+                // Texto da porcentagem
+                ctx.fillStyle = hologramColor;
+                ctx.font = `${r * 0.5}px Orbitron`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`${Math.round(animatedPercentage)}%`, x, y);
+            }
+
+            // --- LÓGICA DAS PARTÍCULAS ---
+
+            // Classe que define uma partícula (ponto no globo)
+            class Particle {
+                constructor() {
+                    this.angle = Math.random() * Math.PI * 2;
+                    this.radius = Math.random() * radius;
+                    this.speed = (Math.random() - 0.5) * 0.02;
+                    this.size = Math.random() * 1.5 + 0.5;
+                    this.opacity = Math.random() * 0.5 + 0.2;
+                }
+                
+                update() {
+                    this.angle += this.speed;
+                    this.x = Math.cos(this.angle) * this.radius;
+                    this.y = Math.sin(this.angle) * this.radius * 0.5; // Efeito de perspectiva achatada
+                }
+            }
+            
+            function createParticles() {
+                particles.length = 0; // Limpa o array
+                const numParticles = Math.floor(radius * 2); // Número de partículas proporcional ao tamanho
+                for (let i = 0; i < numParticles; i++) {
+                    particles.push(new Particle());
+                }
+            }
+            
+            // --- LOOP DE ANIMAÇÃO ---
+
+            // Função principal que é chamada repetidamente para criar a animação
+            function animate() {
+                // Limpa o canvas a cada frame
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Atualiza o ângulo para a rotação
+                angle += 0.005;
+
+                // Desenha todos os elementos do holograma
+                drawGlobe();
+                drawRings();
+                drawHUD();
+                
+                // Pede ao navegador para chamar 'animate' no próximo frame
+                requestAnimationFrame(animate);
+            }
+
+            // --- INICIALIZAÇÃO ---
+
+            // Configura e inicia a animação quando a página carrega
+            window.onload = () => {
+                setup();
+                animate();
+            };
+
+            // Reconfigura o canvas se o tamanho da janela for alterado
+            window.onresize = setup;
+
+        </script>
+    </body>
+    </html>
