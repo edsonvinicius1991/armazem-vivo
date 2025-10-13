@@ -1,0 +1,201 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.alertas_estoque (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  produto_id uuid,
+  tipo_alerta character varying NOT NULL,
+  nivel_criticidade character varying DEFAULT 'medio'::character varying,
+  quantidade_atual numeric NOT NULL,
+  quantidade_referencia numeric,
+  mensagem text NOT NULL,
+  ativo boolean DEFAULT true,
+  data_criacao timestamp with time zone DEFAULT now(),
+  data_resolucao timestamp with time zone,
+  resolvido_por uuid,
+  observacoes text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT alertas_estoque_pkey PRIMARY KEY (id),
+  CONSTRAINT alertas_estoque_produto_id_fkey FOREIGN KEY (produto_id) REFERENCES public.produtos(id),
+  CONSTRAINT alertas_estoque_resolvido_por_fkey FOREIGN KEY (resolvido_por) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.almoxarifados (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  codigo character varying NOT NULL UNIQUE,
+  nome character varying NOT NULL,
+  endereco text,
+  ativo boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT almoxarifados_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.estoque_localizacao (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  produto_id uuid NOT NULL,
+  localizacao_id uuid NOT NULL,
+  lote_id uuid,
+  quantidade numeric NOT NULL DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  reservado numeric DEFAULT 0,
+  CONSTRAINT estoque_localizacao_pkey PRIMARY KEY (id),
+  CONSTRAINT estoque_localizacao_produto_id_fkey FOREIGN KEY (produto_id) REFERENCES public.produtos(id),
+  CONSTRAINT estoque_localizacao_localizacao_id_fkey FOREIGN KEY (localizacao_id) REFERENCES public.localizacoes(id),
+  CONSTRAINT estoque_localizacao_lote_id_fkey FOREIGN KEY (lote_id) REFERENCES public.lotes(id)
+);
+CREATE TABLE public.historico_estoque (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  produto_id uuid,
+  lote_id uuid,
+  localizacao_id uuid,
+  quantidade_anterior numeric NOT NULL,
+  quantidade_nova numeric NOT NULL,
+  diferenca numeric NOT NULL,
+  tipo_operacao character varying NOT NULL,
+  documento_referencia character varying,
+  usuario_id uuid,
+  data_operacao timestamp with time zone DEFAULT now(),
+  observacoes text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT historico_estoque_pkey PRIMARY KEY (id),
+  CONSTRAINT historico_estoque_produto_id_fkey FOREIGN KEY (produto_id) REFERENCES public.produtos(id),
+  CONSTRAINT historico_estoque_lote_id_fkey FOREIGN KEY (lote_id) REFERENCES public.lotes(id),
+  CONSTRAINT historico_estoque_localizacao_id_fkey FOREIGN KEY (localizacao_id) REFERENCES public.localizacoes(id),
+  CONSTRAINT historico_estoque_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.localizacoes (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  almoxarifado_id uuid NOT NULL,
+  codigo character varying NOT NULL,
+  rua character varying,
+  prateleira character varying,
+  nivel character varying,
+  box character varying,
+  tipo USER-DEFINED DEFAULT 'bulk'::tipo_localizacao,
+  capacidade_maxima numeric,
+  ativo boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  descricao text,
+  capacidade_peso numeric,
+  altura numeric,
+  largura numeric,
+  profundidade numeric,
+  temperatura_min numeric,
+  temperatura_max numeric,
+  observacoes text,
+  CONSTRAINT localizacoes_pkey PRIMARY KEY (id),
+  CONSTRAINT localizacoes_almoxarifado_id_fkey FOREIGN KEY (almoxarifado_id) REFERENCES public.almoxarifados(id)
+);
+CREATE TABLE public.lotes (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  produto_id uuid NOT NULL,
+  numero_lote character varying NOT NULL,
+  data_fabricacao date,
+  data_validade date,
+  quantidade_inicial numeric NOT NULL DEFAULT 0,
+  quantidade_atual numeric NOT NULL DEFAULT 0,
+  bloqueado boolean DEFAULT false,
+  motivo_bloqueio text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT lotes_pkey PRIMARY KEY (id),
+  CONSTRAINT lotes_produto_id_fkey FOREIGN KEY (produto_id) REFERENCES public.produtos(id)
+);
+CREATE TABLE public.movimentacoes (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  tipo USER-DEFINED NOT NULL,
+  produto_id uuid NOT NULL,
+  lote_id uuid,
+  localizacao_origem_id uuid,
+  localizacao_destino_id uuid,
+  quantidade numeric NOT NULL,
+  documento character varying,
+  observacao text,
+  realizada_por uuid,
+  realizada_em timestamp with time zone DEFAULT now(),
+  custo_unitario numeric,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT movimentacoes_pkey PRIMARY KEY (id),
+  CONSTRAINT movimentacoes_produto_id_fkey FOREIGN KEY (produto_id) REFERENCES public.produtos(id),
+  CONSTRAINT movimentacoes_lote_id_fkey FOREIGN KEY (lote_id) REFERENCES public.lotes(id),
+  CONSTRAINT movimentacoes_localizacao_origem_id_fkey FOREIGN KEY (localizacao_origem_id) REFERENCES public.localizacoes(id),
+  CONSTRAINT movimentacoes_localizacao_destino_id_fkey FOREIGN KEY (localizacao_destino_id) REFERENCES public.localizacoes(id),
+  CONSTRAINT movimentacoes_realizada_por_fkey FOREIGN KEY (realizada_por) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.produtos (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  sku character varying NOT NULL UNIQUE,
+  nome character varying NOT NULL,
+  descricao text,
+  categoria character varying,
+  unidade character varying NOT NULL,
+  codigo_barras character varying,
+  peso_kg numeric,
+  altura_cm numeric,
+  largura_cm numeric,
+  profundidade_cm numeric,
+  custo_unitario numeric,
+  preco_venda numeric,
+  estoque_minimo numeric DEFAULT 0,
+  estoque_maximo numeric,
+  controla_lote boolean DEFAULT false,
+  controla_validade boolean DEFAULT false,
+  status USER-DEFINED DEFAULT 'ativo'::status_produto,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT produtos_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.profiles (
+  id uuid NOT NULL,
+  email text NOT NULL UNIQUE,
+  nome_completo text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  telefone text,
+  CONSTRAINT profiles_pkey PRIMARY KEY (id),
+  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.recebimento_itens (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  recebimento_id uuid NOT NULL,
+  produto_id uuid NOT NULL,
+  lote_numero character varying,
+  quantidade_esperada numeric NOT NULL,
+  quantidade_recebida numeric DEFAULT 0,
+  data_fabricacao date,
+  data_validade date,
+  localizacao_sugerida uuid,
+  localizacao_confirmada uuid,
+  observacoes text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT recebimento_itens_pkey PRIMARY KEY (id),
+  CONSTRAINT recebimento_itens_recebimento_id_fkey FOREIGN KEY (recebimento_id) REFERENCES public.recebimentos(id),
+  CONSTRAINT recebimento_itens_produto_id_fkey FOREIGN KEY (produto_id) REFERENCES public.produtos(id),
+  CONSTRAINT recebimento_itens_localizacao_sugerida_fkey FOREIGN KEY (localizacao_sugerida) REFERENCES public.localizacoes(id),
+  CONSTRAINT recebimento_itens_localizacao_confirmada_fkey FOREIGN KEY (localizacao_confirmada) REFERENCES public.localizacoes(id)
+);
+CREATE TABLE public.recebimentos (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  numero_documento character varying NOT NULL UNIQUE,
+  fornecedor character varying NOT NULL,
+  data_prevista date NOT NULL,
+  data_recebimento timestamp with time zone,
+  status USER-DEFINED DEFAULT 'pendente'::status_recebimento,
+  observacoes text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT recebimentos_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.user_roles (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  role USER-DEFINED NOT NULL DEFAULT 'operador'::app_role,
+  created_at timestamp with time zone DEFAULT now(),
+  almoxarifado_id uuid,
+  CONSTRAINT user_roles_pkey PRIMARY KEY (id),
+  CONSTRAINT user_roles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
+  CONSTRAINT user_roles_almoxarifado_id_fkey FOREIGN KEY (almoxarifado_id) REFERENCES public.almoxarifados(id)
+);

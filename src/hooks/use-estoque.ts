@@ -258,6 +258,7 @@ export const useEstoque = () => {
       if (error) throw error;
 
       const stats = {
+        totalItensEstoque: consolidado?.reduce((acc, item) => acc + (item.quantidade_total || 0), 0) || 0,
         totalProdutos: consolidado?.length || 0,
         valorTotalEstoque: consolidado?.reduce((acc, item) => acc + (item.valor_total_estoque || 0), 0) || 0,
         produtosCriticos: consolidado?.filter(item => item.status_estoque === 'CRITICO').length || 0,
@@ -270,6 +271,7 @@ export const useEstoque = () => {
     } catch (err) {
       console.error('Erro ao obter estatísticas:', err);
       return {
+        totalItensEstoque: 0,
         totalProdutos: 0,
         valorTotalEstoque: 0,
         produtosCriticos: 0,

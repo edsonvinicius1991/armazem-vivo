@@ -51,6 +51,7 @@ const Estoque = () => {
   } = useAlertasEstoque();
 
   const [estatisticas, setEstatisticas] = useState({
+    totalItensEstoque: 0,
     totalProdutos: 0,
     valorTotalEstoque: 0,
     produtosCriticos: 0,
@@ -171,6 +172,13 @@ const Estoque = () => {
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPICard
+          title="Total de Itens"
+          value={estatisticas.totalItensEstoque}
+          icon={<Package className="h-5 w-5" />}
+          description="Itens em estoque"
+          format="number"
+        />
         <KPICard
           title="Total de Produtos"
           value={estatisticas.totalProdutos}

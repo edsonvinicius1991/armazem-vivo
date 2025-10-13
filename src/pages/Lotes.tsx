@@ -43,7 +43,7 @@ export default function Lotes() {
             id,
             nome,
             sku,
-            unidade_medida
+            unidade
           )
         `)
         .order("created_at", { ascending: false });
@@ -141,9 +141,9 @@ export default function Lotes() {
 
   const filteredLotes = lotes.filter((lote) => {
     const matchesSearch = 
-      lote.numero.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lote.produtos?.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lote.produtos?.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lote.numero?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lote.produtos?.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lote.produtos?.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lote.fornecedor?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === "todos" || lote.status === statusFilter;

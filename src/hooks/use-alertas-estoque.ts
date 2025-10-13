@@ -76,7 +76,16 @@ export const useAlertasEstoque = () => {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        // Se a tabela não existir, não mostrar erro ao usuário
+        if (error.message.includes('relation "alertas_estoque" does not exist') || 
+            error.message.includes('table "alertas_estoque" does not exist')) {
+          console.warn('Tabela alertas_estoque não existe. Retornando lista vazia.');
+          setAlertas([]);
+          return;
+        }
+        throw error;
+      }
       
       // Transformar dados para incluir informações do produto
       const alertasFormatados = data?.map(alerta => ({
@@ -88,11 +97,15 @@ export const useAlertasEstoque = () => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar alertas';
       setError(errorMessage);
-      toast({
-        title: "Erro",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      console.error('Erro ao carregar alertas:', err);
+      // Não mostrar toast de erro para problemas de tabela inexistente
+      if (!errorMessage.includes('does not exist')) {
+        toast({
+          title: "Erro",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -123,17 +136,30 @@ export const useAlertasEstoque = () => {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        // Se a view não existir, não mostrar erro ao usuário
+        if (error.message.includes('relation "vw_lotes_vencimento" does not exist') || 
+            error.message.includes('view "vw_lotes_vencimento" does not exist')) {
+          console.warn('View vw_lotes_vencimento não existe. Retornando lista vazia.');
+          setLotesVencimento([]);
+          return;
+        }
+        throw error;
+      }
       
       setLotesVencimento(data || []);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar lotes';
       setError(errorMessage);
-      toast({
-        title: "Erro",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      console.error('Erro ao carregar lotes:', err);
+      // Não mostrar toast de erro para problemas de view inexistente
+      if (!errorMessage.includes('does not exist')) {
+        toast({
+          title: "Erro",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -225,7 +251,25 @@ export const useAlertasEstoque = () => {
         .select('tipo_alerta, nivel_criticidade')
         .eq('ativo', true);
 
-      if (error) throw error;
+      if (error) {
+        // Se a tabela não existir, retornar contadores zerados
+        if (error.message.includes('relation "alertas_estoque" does not exist') || 
+            error.message.includes('table "alertas_estoque" does not exist')) {
+          console.warn('Tabela alertas_estoque não existe. Retornando contadores zerados.');
+          return {
+            total: 0,
+            criticos: 0,
+            altos: 0,
+            medios: 0,
+            baixos: 0,
+            estoque_minimo: 0,
+            estoque_maximo: 0,
+            produto_vencido: 0,
+            produto_vencendo: 0,
+          };
+        }
+        throw error;
+      }
 
       const contadores = {
         total: data?.length || 0,
