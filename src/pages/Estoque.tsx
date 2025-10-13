@@ -24,11 +24,14 @@ import {
 } from "lucide-react";
 import { useEstoque, EstoqueConsolidado } from '@/hooks/use-estoque';
 import { useAlertasEstoque } from '@/hooks/use-alertas-estoque';
+import { useIsMobile } from '@/hooks/use-mobile';
 import KPICard from '@/components/charts/KPICard';
 import BarChart from '@/components/charts/BarChart';
 import PieChart from '@/components/charts/PieChart';
 
 const Estoque = () => {
+  console.log('🚀 [DEBUG] Componente Estoque renderizado');
+  
   const [busca, setBusca] = useState('');
   const [categoriaFiltro, setCategoriaFiltro] = useState('');
   const [statusFiltro, setStatusFiltro] = useState('');
@@ -49,6 +52,8 @@ const Estoque = () => {
     alertas,
     obterContadoresAlertas
   } = useAlertasEstoque();
+
+  const isMobile = useIsMobile();
 
   const [estatisticas, setEstatisticas] = useState({
     totalItensEstoque: 0,
@@ -72,18 +77,40 @@ const Estoque = () => {
     produto_vencendo: 0,
   });
 
-  // Carregar estatísticas
+  // Carregar dados iniciais
   useEffect(() => {
-    const carregarEstatisticas = async () => {
-      const stats = await obterEstatisticasEstoque();
-      setEstatisticas(stats);
-      
-      const contadores = await obterContadoresAlertas();
-      setContadoresAlertas(contadores);
+    console.log('🔍 [DEBUG] useEffect executado - carregando dados');
+    console.log('🔍 [DEBUG] Estado inicial:', {
+      estoqueConsolidado: estoqueConsolidado.length,
+      loading,
+      error
+    });
+    
+    const carregarDados = async () => {
+      try {
+        // Carregar estoque consolidado
+        console.log('🔍 [DEBUG] Carregando estoque consolidado...');
+        await carregarEstoqueConsolidado();
+        console.log('✅ [DEBUG] Estoque consolidado carregado');
+        
+        // Carregar estatísticas
+        console.log('🔍 [DEBUG] Carregando estatísticas...');
+        const stats = await obterEstatisticasEstoque();
+        setEstatisticas(stats);
+        console.log('✅ [DEBUG] Estatísticas carregadas:', stats);
+        
+        // Carregar alertas
+        console.log('🔍 [DEBUG] Carregando alertas...');
+        const contadores = await obterContadoresAlertas();
+        setContadoresAlertas(contadores);
+        console.log('✅ [DEBUG] Alertas carregados:', contadores);
+      } catch (error) {
+        console.error('❌ [DEBUG] Erro ao carregar dados:', error);
+      }
     };
 
-    carregarEstatisticas();
-  }, [obterEstatisticasEstoque, obterContadoresAlertas]);
+    carregarDados();
+  }, [carregarEstoqueConsolidado, obterEstatisticasEstoque, obterContadoresAlertas]);
 
   // Aplicar filtros
   const produtosFiltrados = estoqueConsolidado.filter(produto => {
@@ -148,30 +175,84 @@ const Estoque = () => {
     carregarHistoricoEstoque(produto.produto_id, 20);
   };
 
+  // Debug: Log dos dados para diagnóstico
+  console.log('🔍 [DEBUG] Estado atual do componente:', {
+    loading,
+    error,
+    estoqueConsolidado: estoqueConsolidado.length,
+    estatisticas,
+    contadoresAlertas,
+    produtosFiltrados: produtosFiltrados.length
+  });
+  
+  // Debug adicional dos produtos
+  if (estoqueConsolidado.length > 0) {
+    console.log('🔍 [DEBUG] Primeiro produto:', estoqueConsolidado[0]);
+  }
+
+  // Se há erro, mostrar mensagem de erro
+  if (error) {
+    return (
+      <div className={`container mx-auto ${isMobile ? 'p-4' : 'p-6'} space-y-6`}>
+        <div className="text-center py-12">
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6 max-w-md mx-auto">
+            <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-destructive mb-2">Erro de Conexão</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Não foi possível carregar os dados do estoque. Verifique sua conexão com o banco de dados.
+            </p>
+            <p className="text-xs text-muted-foreground mb-4 font-mono bg-muted p-2 rounded">
+              {error}
+            </p>
+            <Button onClick={handleRefresh} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Tentar Novamente
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className={`container mx-auto ${isMobile ? 'p-4' : 'p-6'} space-y-6`}>
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className={`${isMobile ? 'space-y-4' : 'flex justify-between items-center'}`}>
         <div>
-          <h1 className="text-3xl font-bold">Controle de Estoque</h1>
-          <p className="text-muted-foreground">
+          <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold`}>Controle de Estoque</h1>
+          <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>
             Gestão completa e consultas rápidas do estoque
           </p>
+          {/* Debug info */}
+          {process.env.NODE_ENV === 'development' && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Debug: {estoqueConsolidado.length} produtos carregados
+            </p>
+          )}
         </div>
-        <div className="flex gap-2">
-          <Button onClick={handleRefresh} variant="outline" size="sm">
+        <div className={`flex gap-2 ${isMobile ? 'w-full' : ''}`}>
+          <Button 
+            onClick={handleRefresh} 
+            variant="outline" 
+            size={isMobile ? "sm" : "sm"}
+            className={isMobile ? 'flex-1' : ''}
+          >
             <RefreshCw className="h-4 w-4 mr-2" />
-            Atualizar
+            {isMobile ? 'Atualizar' : 'Atualizar'}
           </Button>
-          <Button onClick={() => setShowMovimentacaoDialog(true)} size="sm">
+          <Button 
+            onClick={() => setShowMovimentacaoDialog(true)} 
+            size={isMobile ? "sm" : "sm"}
+            className={isMobile ? 'flex-1' : ''}
+          >
             <Plus className="h-4 w-4 mr-2" />
-            Nova Movimentação
+            {isMobile ? 'Nova' : 'Nova Movimentação'}
           </Button>
         </div>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className={`grid ${isMobile ? 'grid-cols-2 gap-3' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'}`}>
         <KPICard
           title="Total de Itens"
           value={estatisticas.totalItensEstoque}
@@ -200,34 +281,35 @@ const Estoque = () => {
           description="Requerem atenção"
           format="number"
         />
-        <KPICard
-          title="Produtos Críticos"
-          value={estatisticas.produtosCriticos}
-          icon={<TrendingDown className="h-5 w-5" />}
-          description="Estoque zerado/baixo"
-          format="number"
-        />
       </div>
 
       {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-1 lg:grid-cols-2 gap-6'}`}>
         <Card>
           <CardHeader>
-            <CardTitle>Status do Estoque</CardTitle>
-            <CardDescription>Distribuição por nível de estoque</CardDescription>
+            <CardTitle className={isMobile ? 'text-lg' : ''}>Status do Estoque</CardTitle>
+            <CardDescription className={isMobile ? 'text-sm' : ''}>
+              Distribuição por níveis de estoque
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <PieChart data={dadosStatusEstoque} />
+            <div className={isMobile ? 'h-48' : 'h-64'}>
+              <PieChart data={dadosStatusEstoque} />
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Valor por Categoria</CardTitle>
-            <CardDescription>Top 10 categorias por valor</CardDescription>
+            <CardTitle className={isMobile ? 'text-lg' : ''}>Valor por Categoria</CardTitle>
+            <CardDescription className={isMobile ? 'text-sm' : ''}>
+              Top 10 categorias por valor
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <BarChart data={dadosCategoriasValor} />
+            <div className={isMobile ? 'h-48' : 'h-64'}>
+              <BarChart data={dadosCategoriasValor} />
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -235,26 +317,25 @@ const Estoque = () => {
       {/* Filtros e Busca */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filtros e Busca
-          </CardTitle>
+          <CardTitle className={isMobile ? 'text-lg' : ''}>Produtos em Estoque</CardTitle>
+          <CardDescription className={isMobile ? 'text-sm' : ''}>
+            Consulte e gerencie o estoque de produtos
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por nome ou SKU..."
-                  value={busca}
-                  onChange={(e) => setBusca(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+          <div className={`${isMobile ? 'space-y-3' : 'flex gap-4 mb-6'}`}>
+            <div className={`relative ${isMobile ? 'w-full' : 'flex-1'}`}>
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Buscar por nome ou SKU..."
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                className={`pl-10 ${isMobile ? 'text-base' : ''}`}
+              />
             </div>
+            
             <Select value={categoriaFiltro} onValueChange={setCategoriaFiltro}>
-              <SelectTrigger className="w-full md:w-48">
+              <SelectTrigger className={isMobile ? 'w-full' : 'w-48'}>
                 <SelectValue placeholder="Categoria" />
               </SelectTrigger>
               <SelectContent>
@@ -266,8 +347,9 @@ const Estoque = () => {
                 ))}
               </SelectContent>
             </Select>
+
             <Select value={statusFiltro} onValueChange={setStatusFiltro}>
-              <SelectTrigger className="w-full md:w-48">
+              <SelectTrigger className={isMobile ? 'w-full' : 'w-48'}>
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -279,95 +361,102 @@ const Estoque = () => {
               </SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Tabela de Produtos */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Produtos em Estoque</CardTitle>
-          <CardDescription>
-            {produtosFiltrados.length} de {estoqueConsolidado.length} produtos
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
+          {/* Tabela de Produtos */}
+          <div className={`${isMobile ? 'overflow-x-auto' : ''}`}>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>SKU</TableHead>
-                  <TableHead>Produto</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead className="text-right">Quantidade</TableHead>
-                  <TableHead className="text-right">Valor Unit.</TableHead>
-                  <TableHead className="text-right">Valor Total</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Localizações</TableHead>
-                  <TableHead className="text-center">Ações</TableHead>
+                  <TableHead className={isMobile ? 'min-w-32' : ''}>SKU</TableHead>
+                  <TableHead className={isMobile ? 'min-w-40' : ''}>Produto</TableHead>
+                  {!isMobile && <TableHead>Categoria</TableHead>}
+                  <TableHead className={isMobile ? 'min-w-24' : ''}>Qtd</TableHead>
+                  <TableHead className={isMobile ? 'min-w-20' : ''}>Status</TableHead>
+                  {!isMobile && <TableHead>Valor Total</TableHead>}
+                  <TableHead className={isMobile ? 'min-w-20' : ''}>Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
-                      Carregando...
+                    <TableCell colSpan={isMobile ? 5 : 7} className="text-center py-8">
+                      Carregando produtos...
                     </TableCell>
                   </TableRow>
                 ) : produtosFiltrados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
-                      Nenhum produto encontrado
+                    <TableCell colSpan={isMobile ? 5 : 7} className="text-center py-12">
+                      <div className="flex flex-col items-center space-y-4">
+                        <Package className="h-12 w-12 text-muted-foreground" />
+                        <div>
+                          <h3 className="font-medium text-lg">Nenhum produto encontrado</h3>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {estoqueConsolidado.length === 0 
+                              ? 'Não há produtos cadastrados no sistema. Configure o banco de dados e insira dados de exemplo.'
+                              : 'Tente ajustar os filtros de busca para encontrar produtos.'
+                            }
+                          </p>
+                          {estoqueConsolidado.length === 0 && (
+                            <div className="mt-4 p-4 bg-muted rounded-lg text-left">
+                              <h4 className="font-medium text-sm mb-2">Para configurar o sistema:</h4>
+                              <ol className="text-xs text-muted-foreground space-y-1">
+                                <li>1. Crie um arquivo .env com suas credenciais do Supabase</li>
+                                <li>2. Execute as migrações do banco de dados</li>
+                                <li>3. Insira dados de exemplo usando o script insert-sample-data.js</li>
+                              </ol>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (
                   produtosFiltrados.map((produto) => (
                     <TableRow key={produto.produto_id}>
-                      <TableCell className="font-mono text-sm">
+                      <TableCell className={`font-mono ${isMobile ? 'text-xs' : 'text-sm'}`}>
                         {produto.sku}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={isMobile ? 'text-sm' : ''}>
                         <div>
                           <div className="font-medium">{produto.produto_nome}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {produto.unidade}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{produto.categoria || '—'}</TableCell>
-                      <TableCell className="text-right">
-                        <div>
-                          <div className="font-medium">{produto.quantidade_total}</div>
-                          {produto.estoque_minimo > 0 && (
+                          {isMobile && (
                             <div className="text-xs text-muted-foreground">
-                              Min: {produto.estoque_minimo}
+                              {produto.categoria}
                             </div>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">
-                        {formatarMoeda(produto.valor_unitario)}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {formatarMoeda(produto.valor_total_estoque)}
+                      {!isMobile && (
+                        <TableCell>
+                          <Badge variant="outline">{produto.categoria}</Badge>
+                        </TableCell>
+                      )}
+                      <TableCell className={isMobile ? 'text-sm' : ''}>
+                        <div className="text-right">
+                          <div className="font-medium">{produto.quantidade_total}</div>
+                          <div className={`text-xs text-muted-foreground ${isMobile ? 'hidden' : ''}`}>
+                            {produto.unidade_medida}
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={getStatusColor(produto.status_estoque)}>
+                        <Badge variant={getStatusColor(produto.status_estoque) as any}>
                           {produto.status_estoque}
                         </Badge>
                       </TableCell>
+                      {!isMobile && (
+                        <TableCell className="text-right font-medium">
+                          {formatarMoeda(produto.valor_total_estoque)}
+                        </TableCell>
+                      )}
                       <TableCell>
-                        <div className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />
-                          <span className="text-sm">{produto.localizacoes_ocupadas}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
                         <Button
                           variant="ghost"
-                          size="sm"
+                          size={isMobile ? "sm" : "sm"}
                           onClick={() => handleViewDetails(produto)}
                         >
                           <Eye className="h-4 w-4" />
+                          {!isMobile && <span className="ml-2">Ver</span>}
                         </Button>
                       </TableCell>
                     </TableRow>

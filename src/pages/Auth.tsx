@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Warehouse } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Auth = () => {
   const [loading, setLoading] = useState(false);
@@ -16,6 +17,7 @@ const Auth = () => {
   const [activeTab, setActiveTab] = useState("login");
   const navigate = useNavigate();
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   // Verifica se o usuário já está autenticado e escuta mudanças de autenticação
   useEffect(() => {
@@ -62,19 +64,19 @@ const Auth = () => {
         }
       }
     );
-    
-    checkAuth();
-    
-    return () => subscription.unsubscribe();
-  }, [navigate, location.state]);
 
-  // Mostra loading inicial enquanto verifica autenticação
+    checkAuth();
+
+    return () => subscription.unsubscribe();
+  }, [navigate, location]);
+
+  // Mostra loading inicial
   if (initialLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5">
-        <div className="flex flex-col items-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Verificando autenticação...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-indigo-600" />
+          <p className="mt-2 text-gray-600">Carregando...</p>
         </div>
       </div>
     );
@@ -166,155 +168,202 @@ const Auth = () => {
   };
 
   return (
-    <div className="auth-container">
-      {/* Animated Background */}
-      <div className="overlay"></div>
-      <div className="particles">
-        {Array.from({ length: 12 }, (_, i) => (
-          <div key={i} className="particle"></div>
-        ))}
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
       
       {/* Main Content */}
-      <div className="main-content min-h-screen flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white rounded-xl shadow-2xl overflow-hidden">
-          {/* Header */}
-          <div className="p-8 text-center bg-gray-50">
-            <div className="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center">
-              <i className="fa-solid fa-warehouse text-3xl text-indigo-600"></i>
-            </div>
-            <h1 className="text-3xl font-bold text-gray-800 mt-4">Sistema WMS</h1>
-            <p className="text-gray-500 mt-1">Gestão Inteligente de Almoxarifado</p>
+      <div className={`
+        w-full bg-white rounded-2xl shadow-xl overflow-hidden relative z-10
+        ${isMobile ? 'max-w-sm' : 'max-w-md'}
+      `}>
+        {/* Header */}
+        <div className={`
+          text-center bg-gradient-to-r from-indigo-500 to-purple-600 text-white
+          ${isMobile ? 'p-6' : 'p-8'}
+        `}>
+          <div className="mx-auto w-16 h-16 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+            <Warehouse className="w-8 h-8 text-white" />
           </div>
+          <h1 className={`font-bold text-white mt-4 ${isMobile ? 'text-2xl' : 'text-3xl'}`}>
+            Sistema WMS
+          </h1>
+          <p className={`text-indigo-100 mt-1 ${isMobile ? 'text-sm' : 'text-base'}`}>
+            Gestão Inteligente de Almoxarifado
+          </p>
+        </div>
 
-          {/* Tabs */}
-          <div className="flex border-b">
-            <button 
-              className={`tab-btn w-1/2 py-4 font-semibold text-center transition-all duration-300 border-b-2 ${
-                activeTab === 'login' 
-                  ? 'text-indigo-600 border-indigo-600' 
-                  : 'text-gray-500 border-transparent'
-              }`}
-              onClick={() => setActiveTab('login')}
-            >
-              Entrar
-            </button>
-            <button 
-              className={`tab-btn w-1/2 py-4 font-semibold text-center transition-all duration-300 border-b-2 ${
-                activeTab === 'register' 
-                  ? 'text-indigo-600 border-indigo-600' 
-                  : 'text-gray-500 border-transparent'
-              }`}
-              onClick={() => setActiveTab('register')}
-            >
-              Cadastrar
-            </button>
-          </div>
+        {/* Tabs */}
+        <div className="flex border-b bg-gray-50">
+          <button 
+            className={`
+              w-1/2 font-semibold text-center transition-all duration-300 border-b-2
+              ${isMobile ? 'py-3 text-sm' : 'py-4 text-base'}
+              ${activeTab === 'login' 
+                ? 'text-indigo-600 border-indigo-600 bg-white' 
+                : 'text-gray-500 border-transparent hover:text-gray-700'
+              }
+            `}
+            onClick={() => setActiveTab('login')}
+          >
+            Entrar
+          </button>
+          <button 
+            className={`
+              w-1/2 font-semibold text-center transition-all duration-300 border-b-2
+              ${isMobile ? 'py-3 text-sm' : 'py-4 text-base'}
+              ${activeTab === 'register' 
+                ? 'text-indigo-600 border-indigo-600 bg-white' 
+                : 'text-gray-500 border-transparent hover:text-gray-700'
+              }
+            `}
+            onClick={() => setActiveTab('register')}
+          >
+            Cadastrar
+          </button>
+        </div>
 
-          {/* Form Content */}
-          <div className="p-8">
-            {activeTab === 'login' ? (
-              <form onSubmit={handleLogin}>
-                <div className="mb-5">
-                  <Label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-600">
-                    E-mail
-                  </Label>
-                  <Input
-                    type="email"
-                    id="email"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="mb-6">
-                  <Label htmlFor="password" className="block mb-2 text-sm font-medium text-gray-600">
-                    Senha
-                  </Label>
-                  <Input
-                    type="password"
-                    id="password"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </div>
-                <Button 
-                  type="submit" 
-                  className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-300"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Entrando...
-                    </>
-                  ) : (
-                    "Entrar"
-                  )}
-                </Button>
-              </form>
-            ) : (
-              <form onSubmit={handleSignup}>
-                <div className="mb-5">
-                  <Label htmlFor="nome" className="block mb-2 text-sm font-medium text-gray-600">
-                    Nome Completo
-                  </Label>
-                  <Input
-                    type="text"
-                    id="nome"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition"
-                    value={nomeCompleto}
-                    onChange={(e) => setNomeCompleto(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="mb-5">
-                  <Label htmlFor="email-register" className="block mb-2 text-sm font-medium text-gray-600">
-                    E-mail
-                  </Label>
-                  <Input
-                    type="email"
-                    id="email-register"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="mb-6">
-                  <Label htmlFor="password-register" className="block mb-2 text-sm font-medium text-gray-600">
-                    Senha
-                  </Label>
-                  <Input
-                    type="password"
-                    id="password-register"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={6}
-                  />
-                </div>
-                <Button 
-                  type="submit" 
-                  className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-300"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Criando conta...
-                    </>
-                  ) : (
-                    "Criar conta"
-                  )}
-                </Button>
-              </form>
-            )}
-          </div>
+        {/* Form Content */}
+        <div className={isMobile ? 'p-6' : 'p-8'}>
+          {activeTab === 'login' ? (
+            <form onSubmit={handleLogin} className="space-y-5">
+              <div>
+                <Label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-700">
+                  E-mail
+                </Label>
+                <Input
+                  type="email"
+                  id="email"
+                  className={`
+                    w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all
+                    ${isMobile ? 'px-3 py-2.5 text-base' : 'px-4 py-3'}
+                  `}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                />
+              </div>
+              <div>
+                <Label htmlFor="password" className="block mb-2 text-sm font-medium text-gray-700">
+                  Senha
+                </Label>
+                <Input
+                  type="password"
+                  id="password"
+                  className={`
+                    w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all
+                    ${isMobile ? 'px-3 py-2.5 text-base' : 'px-4 py-3'}
+                  `}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                />
+              </div>
+              <Button 
+                type="submit" 
+                className={`
+                  w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 
+                  text-white font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 
+                  focus:ring-indigo-500 transition-all duration-300 shadow-lg hover:shadow-xl
+                  ${isMobile ? 'py-2.5 text-base' : 'py-3'}
+                `}
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Entrando...
+                  </>
+                ) : (
+                  "Entrar"
+                )}
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handleSignup} className="space-y-5">
+              <div>
+                <Label htmlFor="nome" className="block mb-2 text-sm font-medium text-gray-700">
+                  Nome Completo
+                </Label>
+                <Input
+                  type="text"
+                  id="nome"
+                  className={`
+                    w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all
+                    ${isMobile ? 'px-3 py-2.5 text-base' : 'px-4 py-3'}
+                  `}
+                  value={nomeCompleto}
+                  onChange={(e) => setNomeCompleto(e.target.value)}
+                  required
+                  autoComplete="name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="email-register" className="block mb-2 text-sm font-medium text-gray-700">
+                  E-mail
+                </Label>
+                <Input
+                  type="email"
+                  id="email-register"
+                  className={`
+                    w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all
+                    ${isMobile ? 'px-3 py-2.5 text-base' : 'px-4 py-3'}
+                  `}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                />
+              </div>
+              <div>
+                <Label htmlFor="password-register" className="block mb-2 text-sm font-medium text-gray-700">
+                  Senha (mínimo 6 caracteres)
+                </Label>
+                <Input
+                  type="password"
+                  id="password-register"
+                  className={`
+                    w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all
+                    ${isMobile ? 'px-3 py-2.5 text-base' : 'px-4 py-3'}
+                  `}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  autoComplete="new-password"
+                />
+              </div>
+              <Button 
+                type="submit" 
+                className={`
+                  w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 
+                  text-white font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 
+                  focus:ring-indigo-500 transition-all duration-300 shadow-lg hover:shadow-xl
+                  ${isMobile ? 'py-2.5 text-base' : 'py-3'}
+                `}
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Criando conta...
+                  </>
+                ) : (
+                  "Criar conta"
+                )}
+              </Button>
+            </form>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className={`
+          text-center text-gray-500 bg-gray-50 border-t
+          ${isMobile ? 'py-4 px-6 text-xs' : 'py-6 px-8 text-sm'}
+        `}>
+          <p>© 2024 Sistema WMS - Gestão Inteligente</p>
         </div>
       </div>
     </div>

@@ -12,6 +12,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { RecebimentoForm } from "@/components/forms/RecebimentoForm";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useIsMobile } from '@/hooks/use-mobile';
 import { 
   Plus, 
   Search, 
@@ -28,7 +29,8 @@ import {
   MapPin,
   Eye,
   Grid3X3,
-  List
+  List,
+  Filter
 } from "lucide-react";
 
 interface Recebimento {
@@ -53,6 +55,7 @@ export default function Recebimentos() {
   const [editingRecebimento, setEditingRecebimento] = useState<Recebimento | null>(null);
   const [modoForm, setModoForm] = useState<"criacao" | "conferencia" | "putaway">("criacao");
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     loadRecebimentos();
@@ -98,15 +101,12 @@ export default function Recebimentos() {
 
   const handleStatusChange = async (id: string, novoStatus: string) => {
     try {
-      const updates: any = { status: novoStatus };
-      
-      if (novoStatus === "finalizado") {
-        updates.data_recebimento = new Date().toISOString();
-      }
-
       const { error } = await supabase
         .from("recebimentos")
-        .update(updates)
+        .update({ 
+          status: novoStatus,
+          data_recebimento: novoStatus === "finalizado" ? new Date().toISOString() : null
+        })
         .eq("id", id);
 
       if (error) throw error;
@@ -119,20 +119,38 @@ export default function Recebimentos() {
     }
   };
 
-  const iniciarConferencia = (recebimento: Recebimento) => {
-    setEditingRecebimento(recebimento);
-    setModoForm("conferencia");
-    setDialogOpen(true);
-    handleStatusChange(recebimento.id, "em_conferencia");
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      pendente: "Pendente",
+      em_conferencia: "Em Conferência",
+      conferido: "Conferido",
+      finalizado: "Finalizado"
+    };
+    return labels[status] || status;
   };
 
-  const iniciarPutaway = (recebimento: Recebimento) => {
-    setEditingRecebimento(recebimento);
-    setModoForm("putaway");
-    setDialogOpen(true);
+  const getStatusVariant = (status: string): any => {
+    const variants: Record<string, any> = {
+      pendente: "secondary",
+      em_conferencia: "default",
+      conferido: "outline",
+      finalizado: "default"
+    };
+    return variants[status] || "default";
   };
 
-  const filteredRecebimentos = recebimentos.filter((recebimento) => {
+  const getStatusIcon = (status: string) => {
+    const icons: Record<string, any> = {
+      pendente: Clock,
+      em_conferencia: Package,
+      conferido: CheckCircle,
+      finalizado: CheckCircle
+    };
+    const Icon = icons[status] || Clock;
+    return <Icon className="h-4 w-4" />;
+  };
+
+  const filteredRecebimentos = recebimentos.filter(recebimento => {
     const matchesSearch = 
       recebimento.numero_documento.toLowerCase().includes(searchTerm.toLowerCase()) ||
       recebimento.fornecedor.toLowerCase().includes(searchTerm.toLowerCase());
@@ -142,66 +160,6 @@ export default function Recebimentos() {
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pendente":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "em_conferencia":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "conferido":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "finalizado":
-        return "bg-gray-100 text-gray-800 border-gray-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "pendente":
-        return <Clock className="h-3 w-3" />;
-      case "em_conferencia":
-        return <Eye className="h-3 w-3" />;
-      case "conferido":
-        return <CheckCircle className="h-3 w-3" />;
-      case "finalizado":
-        return <Package className="h-3 w-3" />;
-      default:
-        return <Clock className="h-3 w-3" />;
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "pendente":
-        return "Pendente";
-      case "em_conferencia":
-        return "Em Conferência";
-      case "conferido":
-        return "Conferido";
-      case "finalizado":
-        return "Finalizado";
-      default:
-        return status;
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("pt-BR");
-  };
-
-  const calcularResumoItens = (itens: any[]) => {
-    if (!itens || itens.length === 0) return { total: 0, divergencias: 0 };
-    
-    const total = itens.length;
-    const divergencias = itens.filter(item => 
-      item.quantidade_recebida !== item.quantidade_esperada
-    ).length;
-    
-    return { total, divergencias };
-  };
-
   const handleFormSuccess = () => {
     setDialogOpen(false);
     setEditingRecebimento(null);
@@ -209,56 +167,81 @@ export default function Recebimentos() {
     loadRecebimentos();
   };
 
-  const openCreateDialog = () => {
-    setEditingRecebimento(null);
-    setModoForm("criacao");
-    setDialogOpen(true);
-  };
-
-  const openEditDialog = (recebimento: Recebimento) => {
+  const handleEdit = (recebimento: Recebimento) => {
     setEditingRecebimento(recebimento);
     setModoForm("criacao");
     setDialogOpen(true);
   };
 
+  const handleConferencia = (recebimento: Recebimento) => {
+    setEditingRecebimento(recebimento);
+    setModoForm("conferencia");
+    setDialogOpen(true);
+  };
+
+  const handlePutaway = (recebimento: Recebimento) => {
+    setEditingRecebimento(recebimento);
+    setModoForm("putaway");
+    setDialogOpen(true);
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Carregando recebimentos...</p>
+      <div className={`container mx-auto ${isMobile ? 'p-4' : 'p-6'}`}>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <Package className="h-8 w-8 animate-pulse mx-auto mb-4" />
+            <p>Carregando recebimentos...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Cabeçalho */}
-      <div className="flex justify-between items-center">
+    <div className={`container mx-auto ${isMobile ? 'p-4' : 'p-6'} space-y-6`}>
+      {/* Header */}
+      <div className={`${isMobile ? 'space-y-4' : 'flex items-center justify-between'}`}>
         <div>
-          <h1 className="text-3xl font-bold">Recebimentos</h1>
-          <p className="text-gray-600">Gerencie recebimentos, conferência e putaway</p>
+          <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold tracking-tight`}>
+            Recebimentos
+          </h1>
+          <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>
+            Gerencie os recebimentos de mercadorias
+          </p>
         </div>
+        
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={openCreateDialog}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Recebimento
+            <Button 
+              className={`gap-2 ${isMobile ? 'w-full' : ''}`}
+              size={isMobile ? "sm" : "default"}
+              onClick={() => {
+                setEditingRecebimento(null);
+                setModoForm("criacao");
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              {isMobile ? 'Novo Recebimento' : 'Novo Recebimento'}
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-4xl max-h-[90vh]'} overflow-y-auto`}>
             <DialogHeader>
-              <DialogTitle>
-                {modoForm === "criacao" && (editingRecebimento ? "Editar Recebimento" : "Novo Recebimento")}
-                {modoForm === "conferencia" && "Conferência de Recebimento"}
-                {modoForm === "putaway" && "Putaway - Definir Localizações"}
+              <DialogTitle className={`${isMobile ? 'text-lg' : ''}`}>
+                {editingRecebimento 
+                  ? modoForm === "conferencia" 
+                    ? "Conferir Recebimento"
+                    : modoForm === "putaway"
+                    ? "Endereçar Produtos"
+                    : "Editar Recebimento"
+                  : "Novo Recebimento"
+                }
               </DialogTitle>
             </DialogHeader>
-            <RecebimentoForm
+            <RecebimentoForm 
               recebimento={editingRecebimento}
-              onSuccess={handleFormSuccess}
               modo={modoForm}
+              onSuccess={handleFormSuccess}
             />
           </DialogContent>
         </Dialog>
@@ -266,40 +249,44 @@ export default function Recebimentos() {
 
       {/* Filtros */}
       <Card>
-        <CardHeader className="pb-3">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-lg">Filtros</CardTitle>
-            <ToggleGroup 
-              type="single" 
-              value={viewMode} 
-              onValueChange={(value) => value && setViewMode(value as "cards" | "table")}
-              className="border rounded-lg p-1"
-            >
-              <ToggleGroupItem value="cards" aria-label="Visualização em cards" size="sm">
-                <Grid3X3 className="h-4 w-4" />
-              </ToggleGroupItem>
-              <ToggleGroupItem value="table" aria-label="Visualização em tabela" size="sm">
-                <List className="h-4 w-4" />
-              </ToggleGroupItem>
-            </ToggleGroup>
+        <CardHeader className={`${isMobile ? 'p-4 pb-2' : ''}`}>
+          <div className={`${isMobile ? 'space-y-3' : 'flex items-center justify-between'}`}>
+            <CardTitle className={`${isMobile ? 'text-lg' : 'text-lg'}`}>
+              Filtros e Busca
+            </CardTitle>
+            {!isMobile && (
+              <ToggleGroup 
+                type="single" 
+                value={viewMode} 
+                onValueChange={(value) => value && setViewMode(value as "cards" | "table")}
+                className="border rounded-md"
+              >
+                <ToggleGroupItem value="cards" aria-label="Visualização em cards" className="gap-2">
+                  <Grid3X3 className="h-4 w-4" />
+                  Cards
+                </ToggleGroupItem>
+                <ToggleGroupItem value="table" aria-label="Visualização em tabela" className="gap-2">
+                  <List className="h-4 w-4" />
+                  Tabela
+                </ToggleGroupItem>
+              </ToggleGroup>
+            )}
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Buscar por documento ou fornecedor..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+        <CardContent className={`${isMobile ? 'p-4 pt-2' : ''}`}>
+          <div className={`${isMobile ? 'space-y-3' : 'flex gap-4'}`}>
+            <div className={`relative ${isMobile ? 'w-full' : 'flex-1'}`}>
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por documento ou fornecedor..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={`pl-10 ${isMobile ? 'text-base' : ''}`}
+              />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue />
+              <SelectTrigger className={`${isMobile ? 'w-full' : 'w-[200px]'}`}>
+                <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos os Status</SelectItem>
@@ -313,280 +300,195 @@ export default function Recebimentos() {
         </CardContent>
       </Card>
 
-      {/* Lista de Recebimentos */}
+      {/* Lista de recebimentos */}
       {filteredRecebimentos.length === 0 ? (
         <Card>
-          <CardContent className="pt-6">
-            <div className="text-center py-8">
-              <Package className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {searchTerm || statusFilter !== "todos" 
-                  ? "Nenhum recebimento encontrado" 
-                  : "Nenhum recebimento cadastrado"
-                }
-              </h3>
-              <p className="text-gray-500 mb-4">
-                {searchTerm || statusFilter !== "todos"
-                  ? "Tente ajustar os filtros de busca"
-                  : "Comece criando seu primeiro recebimento"
-                }
-              </p>
-              {!searchTerm && statusFilter === "todos" && (
-                <Button onClick={openCreateDialog}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Novo Recebimento
-                </Button>
-              )}
-            </div>
+          <CardContent className={`flex flex-col items-center justify-center ${isMobile ? 'py-8' : 'py-12'}`}>
+            <Package className={`${isMobile ? 'h-8 w-8' : 'h-12 w-12'} text-muted-foreground mb-4`} />
+            <p className={`text-muted-foreground text-center mb-4 ${isMobile ? 'text-sm' : ''}`}>
+              {searchTerm || statusFilter !== "todos"
+                ? "Nenhum recebimento encontrado com os filtros aplicados"
+                : "Nenhum recebimento cadastrado ainda"}
+            </p>
+            {!searchTerm && statusFilter === "todos" && (
+              <Button 
+                className="gap-2" 
+                onClick={() => setDialogOpen(true)}
+                size={isMobile ? "sm" : "default"}
+              >
+                <Plus className="h-4 w-4" />
+                Criar Primeiro Recebimento
+              </Button>
+            )}
           </CardContent>
         </Card>
-      ) : viewMode === "cards" ? (
-        <div className="grid gap-4">
-          {filteredRecebimentos.map((recebimento) => {
-            const resumoItens = calcularResumoItens(recebimento.itens || []);
-            
-            return (
-              <Card key={recebimento.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="pt-6">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1 space-y-3">
-                      {/* Linha 1: Documento e Status */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <h3 className="text-lg font-semibold">{recebimento.numero_documento}</h3>
-                          <Badge className={getStatusColor(recebimento.status)}>
-                            {getStatusIcon(recebimento.status)}
-                            <span className="ml-1">{getStatusLabel(recebimento.status)}</span>
-                          </Badge>
-                          {resumoItens.divergencias > 0 && (
-                            <Badge variant="outline" className="text-orange-600 border-orange-600">
-                              <AlertTriangle className="h-3 w-3 mr-1" />
-                              {resumoItens.divergencias} divergência(s)
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openEditDialog(recebimento)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Editar
-                            </DropdownMenuItem>
-                            
-                            {recebimento.status === "pendente" && (
-                              <DropdownMenuItem onClick={() => iniciarConferencia(recebimento)}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                Iniciar Conferência
-                              </DropdownMenuItem>
-                            )}
-                            
-                            {recebimento.status === "conferido" && (
-                              <DropdownMenuItem onClick={() => iniciarPutaway(recebimento)}>
-                                <MapPin className="h-4 w-4 mr-2" />
-                                Putaway
-                              </DropdownMenuItem>
-                            )}
-                            
-                            {recebimento.status === "conferido" && (
-                              <DropdownMenuItem onClick={() => handleStatusChange(recebimento.id, "finalizado")}>
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                Finalizar
-                              </DropdownMenuItem>
-                            )}
-                            
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Excluir
-                                </DropdownMenuItem>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Tem certeza que deseja excluir o recebimento "{recebimento.numero_documento}"? 
-                                    Esta ação não pode ser desfeita.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction 
-                                    onClick={() => handleDelete(recebimento.id)}
-                                    className="bg-red-600 hover:bg-red-700"
-                                  >
-                                    Excluir
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-
-                      {/* Linha 2: Informações principais */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-gray-400" />
-                          <span className="text-gray-600">Fornecedor:</span>
-                          <span className="font-medium">{recebimento.fornecedor}</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-gray-400" />
-                          <span className="text-gray-600">Data Prevista:</span>
-                          <span className="font-medium">{formatDate(recebimento.data_prevista)}</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <Package className="h-4 w-4 text-gray-400" />
-                          <span className="text-gray-600">Itens:</span>
-                          <span className="font-medium">{resumoItens.total}</span>
-                        </div>
-                      </div>
-
-                      {/* Linha 3: Data de recebimento e observações */}
-                      <div className="space-y-2">
-                        {recebimento.data_recebimento && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <CheckCircle className="h-4 w-4 text-green-500" />
-                            <span className="text-gray-600">Recebido em:</span>
-                            <span className="font-medium">{formatDate(recebimento.data_recebimento)}</span>
-                          </div>
-                        )}
-                        
-                        {recebimento.observacoes && (
-                          <div className="flex items-start gap-2 text-sm">
-                            <FileText className="h-4 w-4 text-gray-400 mt-0.5" />
-                            <span className="text-gray-600">Obs:</span>
-                            <span className="text-gray-800">{recebimento.observacoes}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+      ) : (isMobile || viewMode === "cards") ? (
+        <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
+          {filteredRecebimentos.map((recebimento) => (
+            <Card key={recebimento.id} className="hover:shadow-md transition-shadow">
+              <CardHeader className={`${isMobile ? 'p-4 pb-2' : 'pb-3'}`}>
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold`}>
+                      {recebimento.numero_documento}
+                    </CardTitle>
+                    <Badge variant={getStatusVariant(recebimento.status)} className={`gap-1 ${isMobile ? 'text-xs' : ''}`}>
+                      {getStatusIcon(recebimento.status)}
+                      {getStatusLabel(recebimento.status)}
+                    </Badge>
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleEdit(recebimento)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar
+                      </DropdownMenuItem>
+                      {recebimento.status === "pendente" && (
+                        <DropdownMenuItem onClick={() => handleConferencia(recebimento)}>
+                          <Package className="mr-2 h-4 w-4" />
+                          Conferir
+                        </DropdownMenuItem>
+                      )}
+                      {recebimento.status === "conferido" && (
+                        <DropdownMenuItem onClick={() => handlePutaway(recebimento)}>
+                          <MapPin className="mr-2 h-4 w-4" />
+                          Endereçar
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem 
+                        onClick={() => handleDelete(recebimento.id)}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Excluir
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </CardHeader>
+              <CardContent className={`${isMobile ? 'p-4 pt-2' : 'pt-0'}`}>
+                <div className={`space-y-${isMobile ? '1' : '2'}`}>
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className={`${isMobile ? 'text-sm' : 'text-sm'} text-muted-foreground`}>
+                      {recebimento.fornecedor}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span className={`${isMobile ? 'text-sm' : 'text-sm'} text-muted-foreground`}>
+                      Previsto: {new Date(recebimento.data_prevista).toLocaleDateString("pt-BR")}
+                    </span>
+                  </div>
+                  {recebimento.data_recebimento && (
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span className={`${isMobile ? 'text-sm' : 'text-sm'} text-green-600`}>
+                        Recebido: {new Date(recebimento.data_recebimento).toLocaleDateString("pt-BR")}
+                      </span>
+                    </div>
+                  )}
+                  {recebimento.itens && recebimento.itens.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Package className="h-4 w-4 text-muted-foreground" />
+                      <span className={`${isMobile ? 'text-sm' : 'text-sm'} text-muted-foreground`}>
+                        {recebimento.itens.length} {recebimento.itens.length === 1 ? 'item' : 'itens'}
+                      </span>
+                    </div>
+                  )}
+                  {recebimento.observacoes && (
+                    <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-muted-foreground italic`}>
+                      {recebimento.observacoes}
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       ) : (
         <Card>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Documento</TableHead>
-                  <TableHead>Fornecedor</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Data Prevista</TableHead>
-                  <TableHead>Data Recebimento</TableHead>
-                  <TableHead>Itens</TableHead>
-                  <TableHead>Divergências</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRecebimentos.map((recebimento) => {
-                  const resumoItens = calcularResumoItens(recebimento.itens || []);
-                  
-                  return (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Documento</TableHead>
+                    <TableHead>Fornecedor</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Data Prevista</TableHead>
+                    <TableHead>Data Recebimento</TableHead>
+                    <TableHead>Itens</TableHead>
+                    <TableHead className="w-[100px]">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredRecebimentos.map((recebimento) => (
                     <TableRow key={recebimento.id}>
                       <TableCell className="font-medium">{recebimento.numero_documento}</TableCell>
                       <TableCell>{recebimento.fornecedor}</TableCell>
                       <TableCell>
-                        <Badge className={getStatusColor(recebimento.status)}>
+                        <Badge variant={getStatusVariant(recebimento.status)} className="gap-1">
                           {getStatusIcon(recebimento.status)}
-                          <span className="ml-1">{getStatusLabel(recebimento.status)}</span>
+                          {getStatusLabel(recebimento.status)}
                         </Badge>
                       </TableCell>
-                      <TableCell>{formatDate(recebimento.data_prevista)}</TableCell>
                       <TableCell>
-                        {recebimento.data_recebimento ? formatDate(recebimento.data_recebimento) : "-"}
+                        {new Date(recebimento.data_prevista).toLocaleDateString("pt-BR")}
                       </TableCell>
-                      <TableCell>{resumoItens.total}</TableCell>
                       <TableCell>
-                        {resumoItens.divergencias > 0 ? (
-                          <Badge variant="outline" className="text-orange-600 border-orange-600">
-                            {resumoItens.divergencias}
-                          </Badge>
-                        ) : (
-                          "-"
-                        )}
+                        {recebimento.data_recebimento 
+                          ? new Date(recebimento.data_recebimento).toLocaleDateString("pt-BR")
+                          : "-"
+                        }
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell>
+                        {recebimento.itens?.length || 0} {(recebimento.itens?.length || 0) === 1 ? 'item' : 'itens'}
+                      </TableCell>
+                      <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openEditDialog(recebimento)}>
-                              <Edit className="h-4 w-4 mr-2" />
+                            <DropdownMenuItem onClick={() => handleEdit(recebimento)}>
+                              <Edit className="mr-2 h-4 w-4" />
                               Editar
                             </DropdownMenuItem>
-                            
                             {recebimento.status === "pendente" && (
-                              <DropdownMenuItem onClick={() => iniciarConferencia(recebimento)}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                Iniciar Conferência
+                              <DropdownMenuItem onClick={() => handleConferencia(recebimento)}>
+                                <Package className="mr-2 h-4 w-4" />
+                                Conferir
                               </DropdownMenuItem>
                             )}
-                            
                             {recebimento.status === "conferido" && (
-                              <DropdownMenuItem onClick={() => iniciarPutaway(recebimento)}>
-                                <MapPin className="h-4 w-4 mr-2" />
-                                Putaway
+                              <DropdownMenuItem onClick={() => handlePutaway(recebimento)}>
+                                <MapPin className="mr-2 h-4 w-4" />
+                                Endereçar
                               </DropdownMenuItem>
                             )}
-                            
-                            {recebimento.status === "conferido" && (
-                              <DropdownMenuItem onClick={() => handleStatusChange(recebimento.id, "finalizado")}>
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                Finalizar
-                              </DropdownMenuItem>
-                            )}
-                            
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Excluir
-                                </DropdownMenuItem>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Tem certeza que deseja excluir o recebimento "{recebimento.numero_documento}"? 
-                                    Esta ação não pode ser desfeita.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction 
-                                    onClick={() => handleDelete(recebimento.id)}
-                                    className="bg-red-600 hover:bg-red-700"
-                                  >
-                                    Excluir
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                            <DropdownMenuItem 
+                              onClick={() => handleDelete(recebimento.id)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Excluir
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       )}

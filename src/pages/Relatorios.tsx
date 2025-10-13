@@ -1,8 +1,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, TrendingUp, Package, MapPin, BarChart3, Download } from "lucide-react";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Relatorios = () => {
+  const isMobile = useIsMobile();
+
   const reports = [
     {
       icon: TrendingUp,
@@ -43,33 +46,51 @@ const Relatorios = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className={`container mx-auto ${isMobile ? 'p-4' : 'p-6'} space-y-6`}>
+      {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Relatórios</h1>
-        <p className="text-muted-foreground">Análises e exportações de dados do sistema</p>
+        <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold tracking-tight`}>
+          Relatórios
+        </h1>
+        <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>
+          Análises e exportações de dados do sistema
+        </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {/* Grid de Relatórios */}
+      <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
         {reports.map((report, index) => {
           const Icon = report.icon;
           return (
             <Card key={index} className="shadow-md hover:shadow-lg transition-shadow">
-              <CardHeader>
+              <CardHeader className={`${isMobile ? 'p-4 pb-2' : ''}`}>
                 <div className="flex items-center gap-3 mb-2">
-                  <div className={`h-10 w-10 rounded-lg flex items-center justify-center bg-primary/10`}>
-                    <Icon className="h-5 w-5 text-primary" />
+                  <div className={`${isMobile ? 'h-8 w-8' : 'h-10 w-10'} rounded-lg flex items-center justify-center bg-primary/10`}>
+                    <Icon className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-primary`} />
                   </div>
                 </div>
-                <CardTitle className="text-lg">{report.title}</CardTitle>
-                <CardDescription>{report.description}</CardDescription>
+                <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'}`}>
+                  {report.title}
+                </CardTitle>
+                <CardDescription className={`${isMobile ? 'text-sm' : ''}`}>
+                  {report.description}
+                </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1 gap-2">
+              <CardContent className={`${isMobile ? 'p-4 pt-2' : ''}`}>
+                <div className={`flex ${isMobile ? 'flex-col space-y-2' : 'gap-2'}`}>
+                  <Button 
+                    variant="outline" 
+                    className={`${isMobile ? 'w-full' : 'flex-1'} gap-2`}
+                    size={isMobile ? "sm" : "default"}
+                  >
                     <BarChart3 className="h-4 w-4" />
                     Visualizar
                   </Button>
-                  <Button variant="ghost" className="gap-2">
+                  <Button 
+                    variant="ghost" 
+                    className={`gap-2 ${isMobile ? 'w-full' : ''}`}
+                    size={isMobile ? "sm" : "default"}
+                  >
                     <Download className="h-4 w-4" />
                     Exportar
                   </Button>
@@ -80,17 +101,23 @@ const Relatorios = () => {
         })}
       </div>
 
+      {/* Exportações Personalizadas */}
       <Card className="shadow-md">
-        <CardHeader>
-          <CardTitle>Exportações Personalizadas</CardTitle>
-          <CardDescription>
+        <CardHeader className={`${isMobile ? 'p-4 pb-2' : ''}`}>
+          <CardTitle className={`${isMobile ? 'text-lg' : ''}`}>
+            Exportações Personalizadas
+          </CardTitle>
+          <CardDescription className={`${isMobile ? 'text-sm' : ''}`}>
             Configure relatórios customizados com os filtros e campos desejados
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <Button size="lg" className="gap-2">
-              <FileText className="h-5 w-5" />
+        <CardContent className={`${isMobile ? 'p-4 pt-2' : ''}`}>
+          <div className={`flex items-center justify-center ${isMobile ? 'py-6' : 'py-8'}`}>
+            <Button 
+              size={isMobile ? "default" : "lg"} 
+              className={`gap-2 ${isMobile ? 'w-full' : ''}`}
+            >
+              <FileText className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
               Criar Relatório Personalizado
             </Button>
           </div>

@@ -13,11 +13,13 @@ import PieChart from "@/components/charts/PieChart";
 import Sparkline from "@/components/charts/Sparkline";
 import AlertasEstoque from "@/components/AlertasEstoque";
 import { useEstoque } from "@/hooks/use-estoque";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type PeriodoFiltro = 'semanal' | 'mensal' | 'trimestral' | 'anual';
 
 const Dashboard = () => {
   const [periodoSelecionado, setPeriodoSelecionado] = useState<PeriodoFiltro>('mensal');
+  const isMobile = useIsMobile();
   
   const [stats, setStats] = useState({
     totalProdutos: 0,
@@ -90,9 +92,9 @@ const Dashboard = () => {
   };
 
   const opcoesPeriodo = [
-    { valor: 'semanal' as PeriodoFiltro, label: 'Semanal' },
-    { valor: 'mensal' as PeriodoFiltro, label: 'Mensal' },
-    { valor: 'trimestral' as PeriodoFiltro, label: 'Trimestral' },
+    { valor: 'semanal' as PeriodoFiltro, label: isMobile ? 'Sem.' : 'Semanal' },
+    { valor: 'mensal' as PeriodoFiltro, label: isMobile ? 'Men.' : 'Mensal' },
+    { valor: 'trimestral' as PeriodoFiltro, label: isMobile ? 'Tri.' : 'Trimestral' },
     { valor: 'anual' as PeriodoFiltro, label: 'Anual' },
   ];
 
@@ -328,30 +330,37 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${isMobile ? 'px-2' : ''}`}>
       {/* Hero Hologram Animation */}
-      <div className="w-full h-[180px] sm:h-[210px] md:h-[240px] lg:h-[270px] overflow-hidden rounded-lg shadow-sm bg-slate-900">
+      <div className={`
+        w-full overflow-hidden rounded-lg shadow-sm bg-slate-900
+        ${isMobile ? 'h-[140px]' : 'h-[180px] sm:h-[210px] md:h-[240px] lg:h-[270px]'}
+      `}>
         <HologramAnimation 
           backgroundImage="/tech-warehouse.png"
           className="w-full h-full"
         />
       </div>
 
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Visão geral do almoxarifado em tempo real</p>
+      <div className={isMobile ? 'text-center' : ''}>
+        <h1 className={`font-bold tracking-tight ${isMobile ? 'text-2xl' : 'text-3xl'}`}>
+          Dashboard
+        </h1>
+        <p className={`text-muted-foreground ${isMobile ? 'text-sm mt-1' : ''}`}>
+          Visão geral do almoxarifado em tempo real
+        </p>
       </div>
 
       {/* KPIs Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        
+      <div className={`
+        grid gap-4
+        ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3'}
+      `}>
         <KPICard
           title="Itens em Estoque"
           value={estatisticasEstoque.totalItensEstoque}
           icon={<Package className="h-5 w-5" />}
           description="Total itens em estoque"
-          //previousValue={estatisticasEstoque.totalItensEstoque * 0.9}
-          //icon={<CheckCircle2 className="h-5 w-5" />}
           format="number"
         />
         
@@ -390,35 +399,35 @@ const Dashboard = () => {
           description="Produtos abaixo do mínimo"
           format="number"
         />
-       
-        
-        {/* <KPICard
-          title="Acurácia"
-          value={98.5}
-          previousValue={97.8}
-          icon={<CheckCircle2 className="h-5 w-5" />}
-          description="Precisão do inventário"
-          format="percentage" 
-          />
-      */}
       </div>
       
       {/* Filtro de Período Temporal */}
       <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold tracking-tight">Análise Temporal</h2>
-          <div className="flex gap-2 p-1 bg-muted rounded-lg">
+        <div className={`
+          flex items-center justify-between
+          ${isMobile ? 'flex-col gap-3' : ''}
+        `}>
+          <h2 className={`font-bold tracking-tight ${isMobile ? 'text-xl text-center' : 'text-2xl'}`}>
+            Análise Temporal
+          </h2>
+          <div className={`
+            flex gap-1 p-1 bg-muted rounded-lg
+            ${isMobile ? 'w-full justify-center' : 'gap-2'}
+          `}>
             {opcoesPeriodo.map((opcao) => (
               <Button
                 key={opcao.valor}
                 variant={periodoSelecionado === opcao.valor ? "default" : "ghost"}
-                size="sm"
+                size={isMobile ? "sm" : "sm"}
                 onClick={() => setPeriodoSelecionado(opcao.valor)}
-                className={`transition-all duration-200 ${
-                  periodoSelecionado === opcao.valor 
+                className={`
+                  transition-all duration-200
+                  ${isMobile ? 'flex-1 text-xs px-2' : ''}
+                  ${periodoSelecionado === opcao.valor 
                     ? "bg-primary text-primary-foreground shadow-sm" 
                     : "hover:bg-background"
-                }`}
+                  }
+                `}
               >
                 {opcao.label}
               </Button>
@@ -427,51 +436,60 @@ const Dashboard = () => {
         </div>
         
         {/* Gráficos de Análise */}
-        <div className="grid gap-6 md:grid-cols-2">
-        <LineChart
-          title="Movimentações por Tempo"
-          description={`Quantidades de movimentações - ${getPeriodoConfig(periodoSelecionado).descricao}`}
-          data={movimentacoesPorDia}
-          dataKey="value"
-          nameKey="name"
-          height={350}
-          color="hsl(var(--primary))"
-          showDots={true}
-          formatValue={(value) => `${value} itens`}
-        />
-        
-        <PieChart
-          title="Movimentações por Tipo"
-          description={getPeriodoConfig(periodoSelecionado).descricao}
-          data={movimentacoesPorTipo}
-          height={300}
-          innerRadius={60}
-        />
-      </div>
+        <div className={`
+          grid gap-6
+          ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'}
+        `}>
+          <LineChart
+            title="Movimentações por Tempo"
+            description={`Quantidades de movimentações - ${getPeriodoConfig(periodoSelecionado).descricao}`}
+            data={movimentacoesPorDia}
+            dataKey="value"
+            nameKey="name"
+            height={isMobile ? 280 : 350}
+            color="hsl(var(--primary))"
+            showDots={true}
+            formatValue={(value) => `${value} itens`}
+          />
+          
+          <PieChart
+            title="Movimentações por Tipo"
+            description={getPeriodoConfig(periodoSelecionado).descricao}
+            data={movimentacoesPorTipo}
+            height={isMobile ? 280 : 300}
+            innerRadius={isMobile ? 40 : 60}
+          />
+        </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <BarChart
-          title="Produtos Mais Movimentados"
-          description={`Top 5 - ${getPeriodoConfig(periodoSelecionado).descricao}`}
-          data={produtosMaisMovimentados}
-          dataKey="value"
-          nameKey="name"
-          height={300}
-          orientation="vertical"
-        />
-        
-        <PieChart
-          title="Estoque por Categoria"
-          description="Distribuição atual"
-          data={estoquesPorCategoria}
-          height={300}
-          showLegend={true}
-        />
-      </div>
+        <div className={`
+          grid gap-6
+          ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'}
+        `}>
+          <BarChart
+            title="Produtos Mais Movimentados"
+            description={`Top 5 - ${getPeriodoConfig(periodoSelecionado).descricao}`}
+            data={produtosMaisMovimentados}
+            dataKey="value"
+            nameKey="name"
+            height={isMobile ? 280 : 300}
+            orientation="vertical"
+          />
+          
+          <PieChart
+            title="Estoque por Categoria"
+            description="Distribuição atual"
+            data={estoquesPorCategoria}
+            height={isMobile ? 280 : 300}
+            showLegend={!isMobile}
+          />
+        </div>
       </div>
 
       {/* Sparklines para Tendências Rápidas */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className={`
+        grid gap-4
+        ${isMobile ? 'grid-cols-1' : 'md:grid-cols-3'}
+      `}>
         <Sparkline
           data={movimentacoesPorDia.map(d => ({ value: d.value }))}
           label="Tendência Semanal"
@@ -511,12 +529,17 @@ const Dashboard = () => {
       {/* Recent Movements */}
       <Card className="shadow-md">
         <CardHeader>
-          <CardTitle>Últimas Movimentações</CardTitle>
-          <CardDescription>Operações mais recentes no sistema</CardDescription>
+          <CardTitle className={isMobile ? 'text-lg' : ''}>Últimas Movimentações</CardTitle>
+          <CardDescription className={isMobile ? 'text-sm' : ''}>
+            Operações mais recentes no sistema
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {recentMovements.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">
+            <p className={`
+              text-muted-foreground text-center py-8
+              ${isMobile ? 'text-sm' : ''}
+            `}>
               Nenhuma movimentação registrada ainda
             </p>
           ) : (
@@ -524,25 +547,35 @@ const Dashboard = () => {
               {recentMovements.map((movement) => (
                 <div
                   key={movement.id}
-                  className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
+                  className={`
+                    flex items-center justify-between border border-border rounded-lg hover:bg-muted/50 transition-colors
+                    ${isMobile ? 'p-3 flex-col gap-2' : 'p-4'}
+                  `}
                 >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
+                  <div className={`${isMobile ? 'w-full' : 'flex-1'}`}>
+                    <div className={`
+                      flex items-center gap-2 mb-1
+                      ${isMobile ? 'flex-wrap' : ''}
+                    `}>
                       <Badge variant={getTipoVariant(movement.tipo)}>
                         {getTipoLabel(movement.tipo)}
                       </Badge>
-                      <span className="font-medium">{movement.produtos?.sku}</span>
+                      <span className={`font-medium ${isMobile ? 'text-sm' : ''}`}>
+                        {movement.produtos?.sku}
+                      </span>
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
                       {movement.produtos?.nome}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className={`text-muted-foreground mt-1 ${isMobile ? 'text-xs' : 'text-xs'}`}>
                       Por {movement.profiles?.nome_completo} •{" "}
                       {new Date(movement.realizada_em).toLocaleString("pt-BR")}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold">{movement.quantidade} UN</p>
+                  <div className={`text-right ${isMobile ? 'w-full text-center' : ''}`}>
+                    <p className={`font-semibold ${isMobile ? 'text-sm' : ''}`}>
+                      {movement.quantidade} UN
+                    </p>
                   </div>
                 </div>
               ))}
@@ -554,11 +587,14 @@ const Dashboard = () => {
       {/* Seção de Alertas de Estoque */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className={`
+            flex items-center gap-2
+            ${isMobile ? 'text-lg flex-col text-center' : ''}
+          `}>
             <AlertTriangle className="h-5 w-5" />
             Alertas de Estoque
           </CardTitle>
-          <CardDescription>
+          <CardDescription className={isMobile ? 'text-sm text-center' : ''}>
             Monitoramento de alertas críticos e produtos que requerem atenção
           </CardDescription>
         </CardHeader>

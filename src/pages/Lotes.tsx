@@ -9,11 +9,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Plus, Search, Package, Calendar, AlertTriangle, Eye, Edit, Trash2, MoreHorizontal, Filter, Grid3X3, List } from "lucide-react";
+import { Plus, Search, Package, Calendar, AlertTriangle, Eye, Edit, Trash2, MoreHorizontal, Filter, Grid3X3, List, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { LoteForm } from "@/components/forms/LoteForm";
 import { LoteDetailsDialog } from "@/components/dialogs/LoteDetailsDialog";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function Lotes() {
   const [lotes, setLotes] = useState<any[]>([]);
@@ -27,6 +28,7 @@ export default function Lotes() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [loteToDelete, setLoteToDelete] = useState<any>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     loadLotes();

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface HologramAnimationProps {
   backgroundImage?: string;
@@ -37,6 +38,7 @@ const HologramAnimation: React.FC<HologramAnimationProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number>();
+  const isMobile = useIsMobile();
   
   // Configurações de cores para o holograma
   const hologramColor = '#00eaff';
@@ -64,7 +66,8 @@ const HologramAnimation: React.FC<HologramAnimationProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const dpr = window.devicePixelRatio || 1;
+    // Reduzir DPR em dispositivos móveis para melhor performance
+    const dpr = isMobile ? Math.min(window.devicePixelRatio || 1, 2) : window.devicePixelRatio || 1;
     
     // Define o tamanho do canvas com base no contêiner
     const width = container.clientWidth;
@@ -99,7 +102,8 @@ const HologramAnimation: React.FC<HologramAnimationProps> = ({
   const createParticles = () => {
     const { radius } = stateRef.current;
     stateRef.current.particles = [];
-    const numParticles = Math.floor(radius * 2);
+    // Reduzir número de partículas em dispositivos móveis para melhor performance
+    const numParticles = Math.floor(radius * (isMobile ? 1 : 2));
     for (let i = 0; i < numParticles; i++) {
       stateRef.current.particles.push(new Particle(radius));
     }
@@ -111,8 +115,11 @@ const HologramAnimation: React.FC<HologramAnimationProps> = ({
     
     ctx.strokeStyle = hologramColor;
     ctx.lineWidth = 1;
-    ctx.shadowColor = glowColor;
-    ctx.shadowBlur = 25;
+    // Reduzir efeitos de sombra em dispositivos móveis
+    if (!isMobile) {
+      ctx.shadowColor = glowColor;
+      ctx.shadowBlur = 25;
+    }
 
     // Esfera principal
     ctx.beginPath();
@@ -128,7 +135,9 @@ const HologramAnimation: React.FC<HologramAnimationProps> = ({
       p.update();
     });
 
-    ctx.shadowBlur = 0;
+    if (!isMobile) {
+      ctx.shadowBlur = 0;
+    }
   };
 
   // Desenha os anéis que rotacionam ao redor do globo
@@ -137,8 +146,11 @@ const HologramAnimation: React.FC<HologramAnimationProps> = ({
     
     ctx.strokeStyle = hologramColor;
     ctx.lineWidth = 2;
-    ctx.shadowColor = glowColor;
-    ctx.shadowBlur = 15;
+    // Reduzir efeitos de sombra em dispositivos móveis
+    if (!isMobile) {
+      ctx.shadowColor = glowColor;
+      ctx.shadowBlur = 15;
+    }
 
     // Anel 1 (rotação horária)
     ctx.beginPath();
@@ -150,7 +162,9 @@ const HologramAnimation: React.FC<HologramAnimationProps> = ({
     ctx.arc(centerX, centerY, radius * 1.4, -angle * 0.8, -angle * 0.8 + Math.PI * 1.2);
     ctx.stroke();
     
-    ctx.shadowBlur = 0;
+    if (!isMobile) {
+      ctx.shadowBlur = 0;
+    }
   };
 
   // Função auxiliar para desenhar um círculo de porcentagem
@@ -185,32 +199,43 @@ const HologramAnimation: React.FC<HologramAnimationProps> = ({
   const drawHUD = (ctx: CanvasRenderingContext2D) => {
     const { centerX, centerY, radius, angle, barValues, circlePercentages, width, height } = stateRef.current;
     
-    ctx.shadowColor = glowColor;
-    ctx.shadowBlur = 10;
+    // Reduzir efeitos de sombra em dispositivos móveis
+    if (!isMobile) {
+      ctx.shadowColor = glowColor;
+      ctx.shadowBlur = 10;
+    }
     
     // Escala responsiva otimizada para alturas reduzidas
     const scale = Math.min(width, height) / 600; // Reduzido de 800 para 600
     const scaledRadius = radius;
     
     // Gráfico de barras à esquerda (apenas se houver espaço suficiente)
-    if (width > 500) { // Reduzido limite para mostrar em telas menores
+    if (width > (isMobile ? 400 : 500)) { // Ajustado limite para mobile
       const barChartX = centerX - radius * 2.5; // Ajustado para usar radius diretamente
       const barChartY = centerY;
       const barWidth = Math.max(12, 18 * scale);
       const barSpacing = Math.max(6, 8 * scale);
-      const maxHeight = Math.max(50, 70 * scale);
-      
-      barValues.forEach((val, i) => {
-        const barHeight = (val / 100) * maxHeight * (0.9 + Math.sin(angle * 2 + i * 2) * 0.1);
+
+      barValues.forEach((value, index) => {
+        const animatedValue = value * (0.95 + Math.sin(angle * 2 + index) * 0.05);
+        const barHeight = (animatedValue / 100) * scaledRadius * 1.5;
+        const x = barChartX + index * (barWidth + barSpacing);
+        const y = barChartY + scaledRadius * 0.75 - barHeight;
+
         ctx.fillStyle = hologramColor;
-        ctx.fillRect(barChartX + i * (barWidth + barSpacing), barChartY, barWidth, -barHeight);
-        ctx.strokeStyle = 'rgba(0, 234, 255, 0.4)';
-        ctx.strokeRect(barChartX + i * (barWidth + barSpacing), barChartY, barWidth, -maxHeight);
+        ctx.fillRect(x, y, barWidth, barHeight);
+        
+        // Valor no topo da barra
+        ctx.fillStyle = hologramColor;
+        const fontSize = Math.max(8, 10 * scale);
+        ctx.font = `${fontSize}px "Orbitron", monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText(`${Math.round(animatedValue)}`, x + barWidth / 2, y - 5);
       });
     }
 
     // Círculos de porcentagem à direita (apenas se houver espaço suficiente)
-    if (width > 500) { // Reduzido limite para mostrar em telas menores
+    if (width > (isMobile ? 400 : 500)) { // Ajustado limite para mobile
       const circle1X = centerX + radius * 2.0; // Ajustado para usar radius diretamente
       const circle1Y = centerY + radius * 0.7;
       const circle2X = centerX + radius * 2.5;
@@ -230,16 +255,18 @@ const HologramAnimation: React.FC<HologramAnimationProps> = ({
     ctx.textAlign = 'center';
     
     // Texto mais curto em telas pequenas
-    const dynamicCode = width > 500 
+    const dynamicCode = width > (isMobile ? 350 : 500)
       ? `ZA132616624631524111 | SYS_STATUS: OK | ${Math.floor(Date.now() / 1000)}`
       : `SYS_STATUS: OK | ${Math.floor(Date.now() / 1000)}`;
     
     ctx.fillText(dynamicCode, centerX, centerY + radius * 1.5); // Ajustado para altura reduzida
 
-    ctx.shadowBlur = 0;
+    if (!isMobile) {
+      ctx.shadowBlur = 0;
+    }
   };
 
-  // Função principal que é chamada repetidamente para criar a animação
+  // Loop principal de animação
   const animate = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -247,64 +274,67 @@ const HologramAnimation: React.FC<HologramAnimationProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Limpa o canvas a cada frame
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const { width, height } = stateRef.current;
 
-    // Atualiza o ângulo para a rotação
-    stateRef.current.angle += 0.005;
+    // Limpa o canvas
+    ctx.clearRect(0, 0, width, height);
 
-    // Desenha todos os elementos do holograma
+    // Atualiza o ângulo de rotação (mais lento em mobile para economizar bateria)
+    stateRef.current.angle += isMobile ? 0.005 : 0.01;
+
+    // Desenha todos os elementos
     drawGlobe(ctx);
     drawRings(ctx);
     drawHUD(ctx);
-    
-    // Pede ao navegador para chamar 'animate' no próximo frame
+
+    // Continua a animação
     animationRef.current = requestAnimationFrame(animate);
   };
 
+  // Efeito para configurar e iniciar a animação
   useEffect(() => {
     setup();
     animate();
 
+    // Listener para redimensionamento da janela
     const handleResize = () => {
       setup();
     };
 
     window.addEventListener('resize', handleResize);
 
+    // Cleanup
     return () => {
-      window.removeEventListener('resize', handleResize);
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
+      window.removeEventListener('resize', handleResize);
     };
-  }, []);
+  }, [isMobile]); // Adicionar isMobile como dependência
 
   return (
     <div 
       ref={containerRef}
-      className={`relative w-full h-full overflow-hidden ${className}`}
-      style={{ fontFamily: '"Orbitron", monospace' }}
+      className={`relative overflow-hidden ${className}`}
+      style={{
+        backgroundImage: `url(${backgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
     >
-      {/* Imagem de fundo */}
-      <img 
-        src={backgroundImage}
-        alt="Fundo do armazém de tecnologia"
-        className="absolute top-0 left-0 w-full h-full object-cover"
-        style={{ 
-          filter: 'brightness(0.5) contrast(1.1)',
-          zIndex: 1
-        }}
-        onError={(e) => {
-          (e.target as HTMLImageElement).style.display = 'none';
-        }}
-      />
+      {/* Overlay escuro para melhor contraste */}
+      <div className="absolute inset-0 bg-black/60" />
       
-      {/* Canvas do holograma */}
-      <canvas 
+      {/* Canvas da animação */}
+      <canvas
         ref={canvasRef}
-        className="relative"
-        style={{ zIndex: 2 }}
+        className="absolute inset-0 z-10"
+        style={{ 
+          mixBlendMode: 'screen',
+          // Reduzir opacidade em mobile para economizar recursos
+          opacity: isMobile ? 0.8 : 1
+        }}
       />
     </div>
   );
