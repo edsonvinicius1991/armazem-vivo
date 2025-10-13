@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import StatCard from "@/components/StatCard";
 import HologramAnimation from "@/components/HologramAnimation";
-import { Package, MapPin, TrendingUp, DollarSign, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Package, MapPin, TrendingUp, DollarSign, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import KPICard from "@/components/charts/KPICard";
@@ -11,6 +11,7 @@ import LineChart from "@/components/charts/LineChart";
 import PieChart from "@/components/charts/PieChart";
 import Sparkline from "@/components/charts/Sparkline";
 import AlertasEstoque from "@/components/AlertasEstoque";
+import { useEstoque } from "@/hooks/use-estoque";
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -22,11 +23,23 @@ const Dashboard = () => {
     almoxarifadosAtivos: 0,
   });
 
+  const [estatisticasEstoque, setEstatisticasEstoque] = useState({
+    totalItensEstoque: 0,
+    totalProdutos: 0,
+    valorTotalEstoque: 0,
+    produtosCriticos: 0,
+    produtosBaixos: 0,
+    produtosExcesso: 0,
+    produtosNormais: 0,
+  });
+
   const [recentMovements, setRecentMovements] = useState<any[]>([]);
   const [movimentacoesPorTipo, setMovimentacoesPorTipo] = useState<any[]>([]);
   const [movimentacoesPorDia, setMovimentacoesPorDia] = useState<any[]>([]);
   const [produtosMaisMovimentados, setProdutosMaisMovimentados] = useState<any[]>([]);
   const [estoquesPorCategoria, setEstoquesPorCategoria] = useState<any[]>([]);
+
+  const { obterEstatisticasEstoque } = useEstoque();
 
   useEffect(() => {
     loadDashboardData();
@@ -102,6 +115,10 @@ const Dashboard = () => {
 
       setRecentMovements(movements || []);
 
+      // Carregar estatísticas de estoque
+      const statsEstoque = await obterEstatisticasEstoque();
+      setEstatisticasEstoque(statsEstoque);
+
       // Carregar dados para gráficos
       await loadChartsData();
     } catch (error: any) {
@@ -134,26 +151,42 @@ const Dashboard = () => {
         setMovimentacoesPorTipo(Object.values(tiposAgrupados));
       }
 
-      // Movimentações por dia (últimos 7 dias)
+      // Movimentações por dia (últimos 30 dias)
       const { data: movDias } = await supabase
         .from("movimentacoes")
         .select("realizada_em, quantidade")
-        .gte("realizada_em", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+        .gte("realizada_em", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
         .order("realizada_em", { ascending: true });
 
       if (movDias) {
-        const diasAgrupados = movDias.reduce((acc: any, mov: any) => {
-          const dia = new Date(mov.realizada_em).toLocaleDateString("pt-BR", { 
-            weekday: "short", 
-            day: "2-digit" 
+        // Criar array com todos os dias dos últimos 30 dias
+        const diasCompletos = [];
+        for (let i = 29; i >= 0; i--) {
+          const data = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+          const diaFormatado = data.toLocaleDateString("pt-BR", { 
+            day: "2-digit", 
+            month: "2-digit" 
           });
-          if (!acc[dia]) {
-            acc[dia] = { name: dia, value: 0 };
+          diasCompletos.push({ name: diaFormatado, value: 0, date: data.toISOString().split('T')[0] });
+        }
+
+        // Agrupar movimentações por dia
+        const diasAgrupados = movDias.reduce((acc: any, mov: any) => {
+          const dataMovimentacao = new Date(mov.realizada_em).toISOString().split('T')[0];
+          const diaFormatado = new Date(mov.realizada_em).toLocaleDateString("pt-BR", { 
+            day: "2-digit", 
+            month: "2-digit" 
+          });
+          
+          const diaExistente = acc.find((d: any) => d.date === dataMovimentacao);
+          if (diaExistente) {
+            diaExistente.value += mov.quantidade;
           }
-          acc[dia].value += mov.quantidade;
+          
           return acc;
-        }, {});
-        setMovimentacoesPorDia(Object.values(diasAgrupados));
+        }, diasCompletos);
+
+        setMovimentacoesPorDia(diasAgrupados);
       }
 
       // Produtos mais movimentados (últimos 30 dias)
@@ -261,8 +294,19 @@ const Dashboard = () => {
 
       {/* KPIs Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        
         <KPICard
-          title="Total de Produtos"
+          title="Itens em Estoque"
+          value={estatisticasEstoque.totalItensEstoque}
+          icon={<Package className="h-5 w-5" />}
+          description="Total itens em estoque"
+          //previousValue={estatisticasEstoque.totalItensEstoque * 0.9}
+          //icon={<CheckCircle2 className="h-5 w-5" />}
+          format="number"
+        />
+        
+        <KPICard
+          title="Produtos Registrados"
           value={stats.totalProdutos}
           icon={<Package className="h-5 w-5" />}
           description="Produtos ativos no sistema"
@@ -296,26 +340,31 @@ const Dashboard = () => {
           description="Produtos abaixo do mínimo"
           format="number"
         />
-        <KPICard
+       
+        
+        {/* <KPICard
           title="Acurácia"
           value={98.5}
           previousValue={97.8}
           icon={<CheckCircle2 className="h-5 w-5" />}
           description="Precisão do inventário"
-          format="percentage"
-        />
+          format="percentage" 
+          />
+      */}
       </div>
-
+      
       {/* Gráficos de Análise */}
       <div className="grid gap-6 md:grid-cols-2">
         <LineChart
-          title="Movimentações por Dia"
-          description="Últimos 7 dias"
+          title="Movimentações por Tempo"
+          description="Quantidades de movimentações - Últimos 30 dias"
           data={movimentacoesPorDia}
           dataKey="value"
           nameKey="name"
-          height={300}
+          height={350}
           color="hsl(var(--primary))"
+          showDots={true}
+          formatValue={(value) => `${value} itens`}
         />
         
         <PieChart

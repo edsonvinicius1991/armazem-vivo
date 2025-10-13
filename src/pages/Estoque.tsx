@@ -329,7 +329,7 @@ const Estoque = () => {
                         <div>
                           <div className="font-medium">{produto.produto_nome}</div>
                           <div className="text-sm text-muted-foreground">
-                            {produto.unidade_medida}
+                            {produto.unidade}
                           </div>
                         </div>
                       </TableCell>
