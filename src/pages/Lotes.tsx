@@ -300,9 +300,11 @@ export default function Lotes() {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <CardTitle className="text-lg">{lote.numero}</CardTitle>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {lote.produtos?.sku} - {lote.produtos?.nome}
-                      </p>
+                      <div className="text-sm text-gray-600">
+                        <p><strong>SKU:</strong> {lote.produtos?.sku}</p>
+                        <p><strong>Produto:</strong> {lote.produtos?.nome}</p>
+                        <p><strong>Unidade:</strong> {lote.produtos?.unidade}</p>
+                      </div>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -403,6 +405,8 @@ export default function Lotes() {
                 <TableRow>
                   <TableHead>Lote</TableHead>
                   <TableHead>Produto</TableHead>
+                  <TableHead>SKU</TableHead>
+                  <TableHead>Unidade</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Qtd. Atual</TableHead>
                   <TableHead>Qtd. Inicial</TableHead>
@@ -424,12 +428,9 @@ export default function Lotes() {
                           <span className="font-medium">{lote.numero}</span>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{lote.produtos?.nome}</p>
-                          <p className="text-sm text-muted-foreground">{lote.produtos?.sku}</p>
-                        </div>
-                      </TableCell>
+                      <TableCell>{lote.produtos?.nome}</TableCell>
+                      <TableCell>{lote.produtos?.sku}</TableCell>
+                      <TableCell>{lote.produtos?.unidade}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           <Badge className={getStatusColor(lote.status)}>
