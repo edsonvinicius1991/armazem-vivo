@@ -18,12 +18,15 @@ import { SyncProvider } from "./providers/SyncProvider";
 
 const queryClient = new QueryClient();
 
+// Define basename para funcionar corretamente em subdiretório do GitHub Pages
+const basename = import.meta.env.MODE === "production" ? "/armazem-vivo" : "/";
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter basename={basename}>
         {/* <SyncProvider> */}
           <Routes>
             <Route path="/auth" element={<Auth />} />
