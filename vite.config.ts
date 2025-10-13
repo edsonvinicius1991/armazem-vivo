@@ -5,7 +5,7 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  // Configuração para GitHub Pages - ajuste o nome do repositório conforme necessário
+  // Configuração para GitHub Pages
   base: mode === 'production' ? '/armazem-vivo/' : '/',
   server: {
     host: "::",
@@ -17,4 +17,18 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
+          charts: ['recharts'],
+          supabase: ['@supabase/supabase-js']
+        }
+      }
+    }
+  }
 }));

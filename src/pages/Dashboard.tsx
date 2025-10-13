@@ -5,6 +5,7 @@ import HologramAnimation from "@/components/HologramAnimation";
 import { Package, MapPin, TrendingUp, DollarSign, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import KPICard from "@/components/charts/KPICard";
 import BarChart from "@/components/charts/BarChart";
 import LineChart from "@/components/charts/LineChart";
@@ -13,7 +14,11 @@ import Sparkline from "@/components/charts/Sparkline";
 import AlertasEstoque from "@/components/AlertasEstoque";
 import { useEstoque } from "@/hooks/use-estoque";
 
+type PeriodoFiltro = 'semanal' | 'mensal' | 'trimestral' | 'anual';
+
 const Dashboard = () => {
+  const [periodoSelecionado, setPeriodoSelecionado] = useState<PeriodoFiltro>('mensal');
+  
   const [stats, setStats] = useState({
     totalProdutos: 0,
     totalLocalizacoes: 0,
@@ -41,9 +46,59 @@ const Dashboard = () => {
 
   const { obterEstatisticasEstoque } = useEstoque();
 
+  // Funções auxiliares para o filtro temporal
+  const getPeriodoConfig = (periodo: PeriodoFiltro) => {
+    const agora = new Date();
+    let dataInicio: Date;
+    let dias: number;
+    let formatoData: Intl.DateTimeFormatOptions;
+    let descricao: string;
+
+    switch (periodo) {
+      case 'semanal':
+        dataInicio = new Date(agora.getTime() - 7 * 24 * 60 * 60 * 1000);
+        dias = 7;
+        formatoData = { weekday: 'short' };
+        descricao = 'Últimos 7 dias';
+        break;
+      case 'mensal':
+        dataInicio = new Date(agora.getTime() - 30 * 24 * 60 * 60 * 1000);
+        dias = 30;
+        formatoData = { day: '2-digit', month: '2-digit' };
+        descricao = 'Últimos 30 dias';
+        break;
+      case 'trimestral':
+        dataInicio = new Date(agora.getTime() - 90 * 24 * 60 * 60 * 1000);
+        dias = 90;
+        formatoData = { day: '2-digit', month: '2-digit' };
+        descricao = 'Últimos 90 dias';
+        break;
+      case 'anual':
+        dataInicio = new Date(agora.getTime() - 365 * 24 * 60 * 60 * 1000);
+        dias = 365;
+        formatoData = { month: 'short', year: '2-digit' };
+        descricao = 'Últimos 12 meses';
+        break;
+      default:
+        dataInicio = new Date(agora.getTime() - 30 * 24 * 60 * 60 * 1000);
+        dias = 30;
+        formatoData = { day: '2-digit', month: '2-digit' };
+        descricao = 'Últimos 30 dias';
+    }
+
+    return { dataInicio, dias, formatoData, descricao };
+  };
+
+  const opcoesPeriodo = [
+    { valor: 'semanal' as PeriodoFiltro, label: 'Semanal' },
+    { valor: 'mensal' as PeriodoFiltro, label: 'Mensal' },
+    { valor: 'trimestral' as PeriodoFiltro, label: 'Trimestral' },
+    { valor: 'anual' as PeriodoFiltro, label: 'Anual' },
+  ];
+
   useEffect(() => {
     loadDashboardData();
-  }, []);
+  }, [periodoSelecionado]);
 
   const loadDashboardData = async () => {
     try {
@@ -133,11 +188,13 @@ const Dashboard = () => {
 
   const loadChartsData = async () => {
     try {
-      // Movimentações por tipo (últimos 30 dias)
+      const { dataInicio, dias, formatoData, descricao } = getPeriodoConfig(periodoSelecionado);
+      
+      // Movimentações por tipo
       const { data: movTipos } = await supabase
         .from("movimentacoes")
         .select("tipo, quantidade")
-        .gte("realizada_em", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+        .gte("realizada_em", dataInicio.toISOString());
 
       if (movTipos) {
         const tiposAgrupados = movTipos.reduce((acc: any, mov: any) => {
@@ -151,32 +208,25 @@ const Dashboard = () => {
         setMovimentacoesPorTipo(Object.values(tiposAgrupados));
       }
 
-      // Movimentações por dia (últimos 30 dias)
+      // Movimentações por dia
       const { data: movDias } = await supabase
         .from("movimentacoes")
         .select("realizada_em, quantidade")
-        .gte("realizada_em", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+        .gte("realizada_em", dataInicio.toISOString())
         .order("realizada_em", { ascending: true });
 
       if (movDias) {
-        // Criar array com todos os dias dos últimos 30 dias
+        // Criar array com todos os dias do período selecionado
         const diasCompletos = [];
-        for (let i = 29; i >= 0; i--) {
+        for (let i = dias - 1; i >= 0; i--) {
           const data = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
-          const diaFormatado = data.toLocaleDateString("pt-BR", { 
-            day: "2-digit", 
-            month: "2-digit" 
-          });
+          const diaFormatado = data.toLocaleDateString("pt-BR", formatoData);
           diasCompletos.push({ name: diaFormatado, value: 0, date: data.toISOString().split('T')[0] });
         }
 
         // Agrupar movimentações por dia
         const diasAgrupados = movDias.reduce((acc: any, mov: any) => {
           const dataMovimentacao = new Date(mov.realizada_em).toISOString().split('T')[0];
-          const diaFormatado = new Date(mov.realizada_em).toLocaleDateString("pt-BR", { 
-            day: "2-digit", 
-            month: "2-digit" 
-          });
           
           const diaExistente = acc.find((d: any) => d.date === dataMovimentacao);
           if (diaExistente) {
@@ -189,11 +239,11 @@ const Dashboard = () => {
         setMovimentacoesPorDia(diasAgrupados);
       }
 
-      // Produtos mais movimentados (últimos 30 dias)
+      // Produtos mais movimentados
       const { data: produtosMov } = await supabase
         .from("movimentacoes")
         .select("produto_id, quantidade, produtos!inner(nome, sku)")
-        .gte("realizada_em", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+        .gte("realizada_em", dataInicio.toISOString());
 
       if (produtosMov) {
         const produtosAgrupados = produtosMov.reduce((acc: any, mov: any) => {
@@ -353,11 +403,34 @@ const Dashboard = () => {
       */}
       </div>
       
-      {/* Gráficos de Análise */}
-      <div className="grid gap-6 md:grid-cols-2">
+      {/* Filtro de Período Temporal */}
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold tracking-tight">Análise Temporal</h2>
+          <div className="flex gap-2 p-1 bg-muted rounded-lg">
+            {opcoesPeriodo.map((opcao) => (
+              <Button
+                key={opcao.valor}
+                variant={periodoSelecionado === opcao.valor ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setPeriodoSelecionado(opcao.valor)}
+                className={`transition-all duration-200 ${
+                  periodoSelecionado === opcao.valor 
+                    ? "bg-primary text-primary-foreground shadow-sm" 
+                    : "hover:bg-background"
+                }`}
+              >
+                {opcao.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+        
+        {/* Gráficos de Análise */}
+        <div className="grid gap-6 md:grid-cols-2">
         <LineChart
           title="Movimentações por Tempo"
-          description="Quantidades de movimentações - Últimos 30 dias"
+          description={`Quantidades de movimentações - ${getPeriodoConfig(periodoSelecionado).descricao}`}
           data={movimentacoesPorDia}
           dataKey="value"
           nameKey="name"
@@ -369,7 +442,7 @@ const Dashboard = () => {
         
         <PieChart
           title="Movimentações por Tipo"
-          description="Últimos 30 dias"
+          description={getPeriodoConfig(periodoSelecionado).descricao}
           data={movimentacoesPorTipo}
           height={300}
           innerRadius={60}
@@ -379,7 +452,7 @@ const Dashboard = () => {
       <div className="grid gap-6 md:grid-cols-2">
         <BarChart
           title="Produtos Mais Movimentados"
-          description="Top 5 - Últimos 30 dias"
+          description={`Top 5 - ${getPeriodoConfig(periodoSelecionado).descricao}`}
           data={produtosMaisMovimentados}
           dataKey="value"
           nameKey="name"
@@ -394,6 +467,7 @@ const Dashboard = () => {
           height={300}
           showLegend={true}
         />
+      </div>
       </div>
 
       {/* Sparklines para Tendências Rápidas */}
