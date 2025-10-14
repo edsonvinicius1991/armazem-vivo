@@ -32,7 +32,7 @@ class Particle {
 }
 
 const HologramAnimation: React.FC<HologramAnimationProps> = ({ 
-  backgroundImage = '/tech-warehouse.png',
+  backgroundImage = './tech-warehouse.png',
   className = ''
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);

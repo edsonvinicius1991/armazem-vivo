@@ -19,7 +19,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 type PeriodoFiltro = 'semanal' | 'mensal' | 'trimestral' | 'anual';
 
 const Dashboard = () => {
-  const [periodoSelecionado, setPeriodoSelecionado] = useState<PeriodoFiltro>('mensal');
+  const [periodoSelecionado, setPeriodoSelecionado] = useState<PeriodoFiltro>('semanal');
   const isMobile = useIsMobile();
   
   const [stats, setStats] = useState({
@@ -338,7 +338,7 @@ const Dashboard = () => {
         ${isMobile ? 'h-[140px]' : 'h-[180px] sm:h-[210px] md:h-[240px] lg:h-[270px]'}
       `}>
         <HologramAnimation 
-          backgroundImage="/tech-warehouse.png"
+          backgroundImage="./tech-warehouse.png"
           className="w-full h-full"
         />
       </div>
