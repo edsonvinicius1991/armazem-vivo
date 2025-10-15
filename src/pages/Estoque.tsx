@@ -286,33 +286,21 @@ const Estoque = () => {
 
       {/* Gráficos */}
       <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-1 lg:grid-cols-2 gap-6'}`}>
-        <Card>
-          <CardHeader>
-            <CardTitle className={isMobile ? 'text-lg' : ''}>Status do Estoque</CardTitle>
-            <CardDescription className={isMobile ? 'text-sm' : ''}>
-              Distribuição por níveis de estoque
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className={isMobile ? 'h-48' : 'h-64'}>
-              <PieChart data={dadosStatusEstoque} />
-            </div>
-          </CardContent>
-        </Card>
+        {/* Usando os componentes de gráfico que já incluem Card internamente, evitando nested Cards e garantindo posicionamento correto */}
+        <PieChart
+          title="Status do Estoque"
+          description="Distribuição por níveis de estoque"
+          data={dadosStatusEstoque}
+          height={isMobile ? 192 : 256}
+          showLegend
+        />
 
-        <Card>
-          <CardHeader>
-            <CardTitle className={isMobile ? 'text-lg' : ''}>Valor por Categoria</CardTitle>
-            <CardDescription className={isMobile ? 'text-sm' : ''}>
-              Top 10 categorias por valor
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className={isMobile ? 'h-48' : 'h-64'}>
-              <BarChart data={dadosCategoriasValor} />
-            </div>
-          </CardContent>
-        </Card>
+        <BarChart
+          title="Valor por Categoria"
+          description="Top 10 categorias por valor"
+          data={dadosCategoriasValor}
+          height={isMobile ? 192 : 256}
+        />
       </div>
 
       {/* Filtros e Busca */}
