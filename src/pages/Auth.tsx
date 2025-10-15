@@ -11,8 +11,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
-  const [email, setEmail] = useState("edson.vinicius1991@gmail.com");
-  const [password, setPassword] = useState("••••••••");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [nomeCompleto, setNomeCompleto] = useState("");
   const [activeTab, setActiveTab] = useState("login");
   const navigate = useNavigate();
