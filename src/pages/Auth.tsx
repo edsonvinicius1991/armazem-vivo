@@ -8,6 +8,25 @@ import { toast } from "sonner";
 import { Loader2, Warehouse } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+// Definindo a animação de partículas flutuantes
+const floatAnimation = `
+@keyframes float {
+  0% {
+    transform: translateY(100vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-10vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+`;
+
+// Adicionando o estilo ao documento
+const styleElement = document.createElement("style");
+styleElement.textContent = floatAnimation;
+document.head.appendChild(styleElement);
+
 const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -168,13 +187,40 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background image */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center z-0" 
+        style={{ 
+          backgroundImage: "url('/armazem-inteligente-tablet.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center"
+        }}
+      ></div>
+      
+      {/* Dark overlay for better contrast */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0a192f]/90 via-[#0a192f]/75 to-[#0a192f]/90 z-[1]"></div>
+      
+      {/* Animated particles */}
+      <div className="absolute inset-0 overflow-hidden z-[2]">
+        {Array.from({ length: 12 }).map((_, index) => (
+          <div 
+            key={index}
+            className="absolute bg-white/20 rounded-full"
+            style={{
+              width: `${Math.floor(Math.random() * 5) + 3}px`,
+              height: `${Math.floor(Math.random() * 5) + 3}px`,
+              left: `${Math.floor(Math.random() * 100)}%`,
+              animation: `float ${Math.floor(Math.random() * 25) + 15}s infinite linear`,
+              animationDelay: `-${Math.floor(Math.random() * 12)}s`,
+            }}
+          />
+        ))}
+      </div>
       
       {/* Main Content */}
       <div className={`
-        w-full bg-white rounded-2xl shadow-xl overflow-hidden relative z-10
+        w-full bg-white rounded-2xl shadow-xl overflow-hidden relative z-[3]
         ${isMobile ? 'max-w-sm' : 'max-w-md'}
       `}>
         {/* Header */}
