@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Warehouse } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import backgroundImage from "../assets/armazem-inteligente-tablet.jpg";
 
 // Definindo a animação de partículas flutuantes
 const floatAnimation = `
@@ -192,7 +193,7 @@ const Auth = () => {
       <div 
         className="absolute inset-0 bg-cover bg-center z-0" 
         style={{ 
-          backgroundImage: "url('/armazem-inteligente-tablet.jpg')",
+          backgroundImage: `url(${backgroundImage})`,
           backgroundSize: "cover",
           backgroundPosition: "center"
         }}

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import StatCard from "@/components/StatCard";
 import HologramAnimation from "@/components/HologramAnimation";
 import { Package, MapPin, TrendingUp, DollarSign, AlertTriangle } from "lucide-react";
+import techWarehouseImage from "../assets/tech-warehouse.png";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -338,7 +339,7 @@ const Dashboard = () => {
         ${isMobile ? 'h-[140px]' : 'h-[180px] sm:h-[210px] md:h-[240px] lg:h-[270px]'}
       `}>
         <HologramAnimation 
-          backgroundImage="./tech-warehouse.png"
+          backgroundImage={techWarehouseImage}
           className="w-full h-full"
         />
       </div>
