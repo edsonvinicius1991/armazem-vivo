@@ -181,11 +181,13 @@ const Produtos = () => {
                 {isMobile ? 'Novo' : 'Novo Produto'}
               </Button>
             </DialogTrigger>
-            <DialogContent className={`${isMobile ? 'w-[95vw] max-w-[95vw]' : 'max-w-2xl'}`}>
-              <DialogHeader>
+            <DialogContent className={`${isMobile ? 'w-[95vw] max-w-[95vw]' : 'max-w-4xl'} overflow-hidden max-h-[90vh]`}>
+              <DialogHeader className="pb-2">
                 <DialogTitle>Criar Novo Produto</DialogTitle>
               </DialogHeader>
-              <ProdutoForm onSuccess={handleCreateSuccess} />
+              <div className="overflow-y-auto pr-1 max-h-[calc(90vh-80px)]">
+                <ProdutoForm onSuccess={handleCreateSuccess} />
+              </div>
             </DialogContent>
           </Dialog>
         </div>

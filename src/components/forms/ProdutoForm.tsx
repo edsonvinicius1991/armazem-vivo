@@ -171,13 +171,13 @@ export function ProdutoForm({ produto, onSuccess, onCancel }: ProdutoFormProps) 
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 w-full max-w-full overflow-x-hidden px-1 sm:px-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <FormField
             control={form.control}
             name="sku"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="w-full">
                 <FormLabel>SKU *</FormLabel>
                 <FormControl>
                   <Input placeholder="Ex: PROD001" {...field} />
@@ -286,18 +286,19 @@ export function ProdutoForm({ produto, onSuccess, onCancel }: ProdutoFormProps) 
           )}
         />
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3">
           <FormField
             control={form.control}
             name="peso_kg"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Peso (kg)</FormLabel>
+              <FormItem className="w-full">
+                <FormLabel className="text-sm">Peso (kg)</FormLabel>
                 <FormControl>
                   <Input 
                     type="number" 
                     step="0.001"
                     placeholder="0.000"
+                    className="w-full h-9"
                     {...field}
                     onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                   />
@@ -368,18 +369,19 @@ export function ProdutoForm({ produto, onSuccess, onCancel }: ProdutoFormProps) 
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="custo_unitario"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="w-full">
                 <FormLabel>Custo Unitário (R$)</FormLabel>
                 <FormControl>
                   <Input 
                     type="number" 
                     step="0.01"
                     placeholder="0.00"
+                    className="w-full"
                     {...field}
                     onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                   />
@@ -450,12 +452,12 @@ export function ProdutoForm({ produto, onSuccess, onCancel }: ProdutoFormProps) 
 
         
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           <FormField
             control={form.control}
             name="controla_lote"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 w-full">
                 <div className="space-y-0.5">
                   <FormLabel className="text-base">Controla Lote</FormLabel>
                   <div className="text-sm text-muted-foreground">
@@ -517,11 +519,11 @@ export function ProdutoForm({ produto, onSuccess, onCancel }: ProdutoFormProps) 
           />
         </div>
 
-        <div className="flex justify-end space-x-2">
-          <Button type="button" variant="outline" onClick={onCancel}>
+        <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 mt-4">
+          <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:w-auto">
             Cancelar
           </Button>
-          <Button type="submit">
+          <Button type="submit" className="w-full sm:w-auto">
             {isEditing ? "Atualizar" : "Criar"} Produto
           </Button>
         </div>
