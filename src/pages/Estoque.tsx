@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -20,7 +21,9 @@ import {
   Eye,
   ArrowUpDown,
   Calendar,
-  MapPin
+  MapPin,
+  Grid3X3,
+  List
 } from "lucide-react";
 import { useEstoque, EstoqueConsolidado } from '@/hooks/use-estoque';
 import { useAlertasEstoque } from '@/hooks/use-alertas-estoque';
@@ -55,6 +58,14 @@ const Estoque = () => {
   } = useAlertasEstoque();
 
   const isMobile = useIsMobile();
+
+  // Controle de visualização: cards (melhor no mobile) ou tabela
+  const [viewMode, setViewMode] = useState<"cards" | "table">(isMobile ? "cards" : "table");
+  useEffect(() => {
+    if (isMobile) {
+      setViewMode("cards");
+    }
+  }, [isMobile]);
 
   const [estatisticas, setEstatisticas] = useState({
     totalItensEstoque: 0,
@@ -351,7 +362,98 @@ const Estoque = () => {
             </Select>
           </div>
 
+          {/* Alternador de visualização (apenas desktop). No mobile, usamos automaticamente "cards" */}
+          {!isMobile && (
+            <div className="flex justify-end mb-4">
+              <ToggleGroup
+                type="single"
+                value={viewMode}
+                onValueChange={(value) => value && setViewMode(value as "cards" | "table")}
+              >
+                <ToggleGroupItem value="cards" aria-label="Visualização em cards">
+                  <Grid3X3 className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="table" aria-label="Visualização em tabela">
+                  <List className="h-4 w-4" />
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+          )}
+
+          {/* Lista de produtos - Cards no mobile ou quando selecionado, Tabela no desktop */}
+          {(viewMode === "cards" || isMobile) ? (
+            <div className={isMobile ? "grid grid-cols-1 gap-4" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"}>
+              {loading ? (
+                <div className="col-span-full text-center py-8">Carregando produtos...</div>
+              ) : produtosFiltrados.length === 0 ? (
+                <div className="col-span-full">
+                  <Card>
+                    <CardContent className={isMobile ? "p-8 text-center" : "p-12 text-center"}>
+                      <Package className={isMobile ? "h-12 w-12 mx-auto text-muted-foreground mb-4" : "h-16 w-16 mx-auto text-muted-foreground mb-4"} />
+                      <h3 className={isMobile ? "text-lg font-semibold mb-2" : "text-xl font-semibold mb-2"}>
+                        Nenhum produto encontrado
+                      </h3>
+                      <p className={isMobile ? "text-sm text-muted-foreground" : "text-muted-foreground"}>
+                        {estoqueConsolidado.length === 0
+                          ? "Não há produtos cadastrados no sistema. Configure o banco de dados e insira dados de exemplo."
+                          : "Tente ajustar os filtros de busca para encontrar produtos."
+                        }
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : (
+                produtosFiltrados.map((produto) => (
+                  <Card key={produto.produto_id} className="hover:shadow-md transition-shadow">
+                    <CardHeader className={isMobile ? "p-4 pb-2" : "pb-3"}>
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <CardTitle className={isMobile ? "text-base line-clamp-2" : "text-lg line-clamp-2"}>
+                            {produto.produto_nome}
+                          </CardTitle>
+                          <p className={isMobile ? "text-xs text-muted-foreground font-mono" : "text-sm text-muted-foreground font-mono"}>
+                            {produto.sku}
+                          </p>
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => handleViewDetails(produto)} title="Ver detalhes">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className={isMobile ? "p-4 pt-0" : "pt-0"}>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className={isMobile ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>Categoria:</span>
+                          <Badge variant="outline" className={isMobile ? "text-xs" : undefined}>
+                            {produto.categoria || "Sem categoria"}
+                          </Badge>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className={isMobile ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>Status:</span>
+                          <Badge variant={getStatusColor(produto.status_estoque) as any}>
+                            {produto.status_estoque}
+                          </Badge>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className={isMobile ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>Qtd:</span>
+                          <span className={isMobile ? "text-sm font-medium" : "font-medium"}>{produto.quantidade_total}</span>
+                        </div>
+                        {!isMobile && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Valor Total:</span>
+                            <span className="font-medium">{formatarMoeda(produto.valor_total_estoque)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          ) : null}
+
           {/* Tabela de Produtos */}
+          {(viewMode === "table" && !isMobile) && (
           <div className={`${isMobile ? 'overflow-x-auto' : ''}`}>
             <Table>
               <TableHeader>
@@ -454,6 +556,7 @@ const Estoque = () => {
               </TableBody>
             </Table>
           </div>
+          )}
         </CardContent>
       </Card>
 
