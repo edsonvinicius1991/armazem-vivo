@@ -186,7 +186,7 @@ const Produtos = () => {
                 <DialogTitle>Criar Novo Produto</DialogTitle>
               </DialogHeader>
               <div className="overflow-y-auto pr-1 max-h-[calc(90vh-80px)]">
-                <ProdutoForm onSuccess={handleCreateSuccess} />
+                <ProdutoForm onSuccess={handleCreateSuccess} onCancel={() => setShowCreateDialog(false)} />
               </div>
             </DialogContent>
           </Dialog>
