@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -20,16 +21,30 @@ import {
   Check,
   X,
   Filter,
-  RefreshCw
+  RefreshCw,
+  Grid3X3,
+  List
 } from "lucide-react";
 import { useAlertasEstoque, AlertaEstoque, LoteVencimento } from '@/hooks/use-alertas-estoque';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const AlertasEstoque = () => {
+  const isMobile = useIsMobile();
+  
   const [filtroTipo, setFiltroTipo] = useState('');
   const [filtroCriticidade, setFiltroCriticidade] = useState('');
   const [alertasSelecionados, setAlertasSelecionados] = useState<string[]>([]);
   const [showResolverDialog, setShowResolverDialog] = useState(false);
   const [observacoesResolucao, setObservacoesResolucao] = useState('');
+  
+  // Controle de visualização: cards (melhor no mobile) ou tabela
+  const [viewMode, setViewMode] = useState<"cards" | "table">(isMobile ? "cards" : "table");
+  
+  useEffect(() => {
+    if (isMobile) {
+      setViewMode("cards");
+    }
+  }, [isMobile]);
 
   const {
     alertas,
@@ -206,7 +221,25 @@ const AlertasEstoque = () => {
             </CardContent>
           </Card>
 
-          {/* Tabela de Alertas */}
+          {/* Alternador de visualização (apenas desktop). No mobile, usamos automaticamente "cards" */}
+          {!isMobile && (
+            <div className="flex justify-end mb-4">
+              <ToggleGroup
+                type="single"
+                value={viewMode}
+                onValueChange={(value) => value && setViewMode(value as "cards" | "table")}
+              >
+                <ToggleGroupItem value="cards" aria-label="Visualização em cards">
+                  <Grid3X3 className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="table" aria-label="Visualização em tabela">
+                  <List className="h-4 w-4" />
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+          )}
+
+          {/* Alertas Ativos - Cards ou Tabela */}
           <Card>
             <CardHeader>
               <CardTitle>Alertas Ativos</CardTitle>
@@ -215,8 +248,102 @@ const AlertasEstoque = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
+              {/* Visualização em Cards (mobile ou quando selecionado) */}
+              {(viewMode === "cards" || isMobile) ? (
+                <div className={isMobile ? "grid grid-cols-1 gap-4" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"}>
+                  {loading ? (
+                    <div className="col-span-full text-center py-8">Carregando alertas...</div>
+                  ) : alertasFiltrados.length === 0 ? (
+                    <div className="col-span-full">
+                      <Card>
+                        <CardContent className={isMobile ? "p-8 text-center" : "p-12 text-center"}>
+                          <AlertTriangle className={isMobile ? "h-12 w-12 mx-auto text-muted-foreground mb-4" : "h-16 w-16 mx-auto text-muted-foreground mb-4"} />
+                          <h3 className={isMobile ? "text-lg font-semibold mb-2" : "text-xl font-semibold mb-2"}>
+                            Nenhum alerta encontrado
+                          </h3>
+                          <p className={isMobile ? "text-sm text-muted-foreground" : "text-muted-foreground"}>
+                            {alertas.length === 0
+                              ? "Não há alertas ativos no sistema."
+                              : "Tente ajustar os filtros para encontrar alertas."
+                            }
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  ) : (
+                    alertasFiltrados.map((alerta) => (
+                      <Card key={alerta.id} className="hover:shadow-md transition-shadow">
+                        <CardHeader className={isMobile ? "p-4 pb-2" : "pb-3"}>
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                {getCriticidadeIcon(alerta.nivel_criticidade)}
+                                <Badge variant={getCriticidadeColor(alerta.nivel_criticidade)}>
+                                  {alerta.nivel_criticidade}
+                                </Badge>
+                              </div>
+                              <CardTitle className={isMobile ? "text-base line-clamp-2" : "text-lg line-clamp-2"}>
+                                {alerta.produto?.nome}
+                              </CardTitle>
+                              <p className={isMobile ? "text-xs text-muted-foreground font-mono" : "text-sm text-muted-foreground font-mono"}>
+                                {alerta.produto?.sku}
+                              </p>
+                            </div>
+                            <div className="flex gap-1">
+                              <Checkbox
+                                checked={alertasSelecionados.includes(alerta.id)}
+                                onCheckedChange={() => toggleAlertaSelecionado(alerta.id)}
+                              />
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setAlertasSelecionados([alerta.id]);
+                                  setShowResolverDialog(true);
+                                }}
+                                title="Resolver alerta"
+                              >
+                                <Check className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className={isMobile ? "p-4 pt-0" : "pt-0"}>
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className={isMobile ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>Tipo:</span>
+                              <Badge variant="outline" className={isMobile ? "text-xs" : undefined}>
+                                {alerta.tipo_alerta.replace('_', ' ')}
+                              </Badge>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className={isMobile ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>Qtd Atual:</span>
+                              <span className={isMobile ? "text-sm font-medium" : "font-medium"}>{alerta.quantidade_atual}</span>
+                            </div>
+                            {alerta.quantidade_referencia && (
+                              <div className="flex justify-between items-center">
+                                <span className={isMobile ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>Qtd Ref:</span>
+                                <span className={isMobile ? "text-sm font-medium" : "font-medium"}>{alerta.quantidade_referencia}</span>
+                              </div>
+                            )}
+                            <div className="mt-3">
+                              <p className={isMobile ? "text-xs text-muted-foreground line-clamp-2" : "text-sm text-muted-foreground line-clamp-2"} title={alerta.mensagem}>
+                                {alerta.mensagem}
+                              </p>
+                            </div>
+                            <div className="flex justify-between items-center text-xs text-muted-foreground mt-2">
+                              <span>{formatarData(alerta.data_criacao)}</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              ) : (
+                // Visualização em Tabela (desktop apenas)
+                <div className="overflow-x-auto">
+                  <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-12">
@@ -314,7 +441,8 @@ const AlertasEstoque = () => {
                     )}
                   </TableBody>
                 </Table>
-              </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -330,8 +458,51 @@ const AlertasEstoque = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <Table>
+                {/* Visualização em Cards (mobile ou quando selecionado) */}
+                {(viewMode === "cards" || isMobile) ? (
+                  <div className={isMobile ? "grid grid-cols-1 gap-4" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"}>
+                    {lotesVencidos.map((lote) => (
+                      <Card key={lote.lote_id} className="hover:shadow-md transition-shadow border-red-200">
+                        <CardHeader className={isMobile ? "p-4 pb-2" : "pb-3"}>
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <CardTitle className={isMobile ? "text-base line-clamp-2" : "text-lg line-clamp-2"}>
+                                {lote.produto_nome}
+                              </CardTitle>
+                              <p className={isMobile ? "text-xs text-muted-foreground font-mono" : "text-sm text-muted-foreground font-mono"}>
+                                {lote.sku}
+                              </p>
+                            </div>
+                            <Badge variant={getVencimentoColor(lote.status_vencimento)} className="text-red-600">
+                              VENCIDO
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className={isMobile ? "p-4 pt-0" : "pt-0"}>
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className={isMobile ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>Lote:</span>
+                              <span className={isMobile ? "text-sm font-mono font-medium" : "font-mono font-medium"}>{lote.numero_lote}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className={isMobile ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>Vencimento:</span>
+                              <span className={isMobile ? "text-sm font-medium text-red-600" : "font-medium text-red-600"}>
+                                {new Date(lote.data_validade).toLocaleDateString('pt-BR')}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className={isMobile ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>Quantidade:</span>
+                              <span className={isMobile ? "text-sm font-medium" : "font-medium"}>{lote.quantidade_total}</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  // Visualização em Tabela (desktop apenas)
+                  <div className="overflow-x-auto">
+                    <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Produto</TableHead>
@@ -364,7 +535,8 @@ const AlertasEstoque = () => {
                       ))}
                     </TableBody>
                   </Table>
-                </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -379,8 +551,51 @@ const AlertasEstoque = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <Table>
+                {/* Visualização em Cards (mobile ou quando selecionado) */}
+                {(viewMode === "cards" || isMobile) ? (
+                  <div className={isMobile ? "grid grid-cols-1 gap-4" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"}>
+                    {lotesVencendo30.map((lote) => (
+                      <Card key={lote.lote_id} className="hover:shadow-md transition-shadow border-orange-200">
+                        <CardHeader className={isMobile ? "p-4 pb-2" : "pb-3"}>
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <CardTitle className={isMobile ? "text-base line-clamp-2" : "text-lg line-clamp-2"}>
+                                {lote.produto_nome}
+                              </CardTitle>
+                              <p className={isMobile ? "text-xs text-muted-foreground font-mono" : "text-sm text-muted-foreground font-mono"}>
+                                {lote.sku}
+                              </p>
+                            </div>
+                            <Badge variant="secondary" className="text-orange-600">
+                              {lote.dias_para_vencimento} dias
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className={isMobile ? "p-4 pt-0" : "pt-0"}>
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className={isMobile ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>Lote:</span>
+                              <span className={isMobile ? "text-sm font-mono font-medium" : "font-mono font-medium"}>{lote.numero_lote}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className={isMobile ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>Vencimento:</span>
+                              <span className={isMobile ? "text-sm font-medium text-orange-600" : "font-medium text-orange-600"}>
+                                {new Date(lote.data_validade).toLocaleDateString('pt-BR')}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className={isMobile ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>Quantidade:</span>
+                              <span className={isMobile ? "text-sm font-medium" : "font-medium"}>{lote.quantidade_total}</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  // Visualização em Tabela (desktop apenas)
+                  <div className="overflow-x-auto">
+                    <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Produto</TableHead>
@@ -413,7 +628,8 @@ const AlertasEstoque = () => {
                       ))}
                     </TableBody>
                   </Table>
-                </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -428,8 +644,51 @@ const AlertasEstoque = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <Table>
+                {/* Visualização em Cards (mobile ou quando selecionado) */}
+                {(viewMode === "cards" || isMobile) ? (
+                  <div className={isMobile ? "grid grid-cols-1 gap-4" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"}>
+                    {lotesVencendo60.map((lote) => (
+                      <Card key={lote.lote_id} className="hover:shadow-md transition-shadow border-yellow-200">
+                        <CardHeader className={isMobile ? "p-4 pb-2" : "pb-3"}>
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <CardTitle className={isMobile ? "text-base line-clamp-2" : "text-lg line-clamp-2"}>
+                                {lote.produto_nome}
+                              </CardTitle>
+                              <p className={isMobile ? "text-xs text-muted-foreground font-mono" : "text-sm text-muted-foreground font-mono"}>
+                                {lote.sku}
+                              </p>
+                            </div>
+                            <Badge variant="outline" className="text-yellow-600">
+                              {lote.dias_para_vencimento} dias
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className={isMobile ? "p-4 pt-0" : "pt-0"}>
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className={isMobile ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>Lote:</span>
+                              <span className={isMobile ? "text-sm font-mono font-medium" : "font-mono font-medium"}>{lote.numero_lote}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className={isMobile ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>Vencimento:</span>
+                              <span className={isMobile ? "text-sm font-medium text-yellow-600" : "font-medium text-yellow-600"}>
+                                {new Date(lote.data_validade).toLocaleDateString('pt-BR')}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className={isMobile ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>Quantidade:</span>
+                              <span className={isMobile ? "text-sm font-medium" : "font-medium"}>{lote.quantidade_total}</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  // Visualização em Tabela (desktop apenas)
+                  <div className="overflow-x-auto">
+                    <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Produto</TableHead>
@@ -462,7 +721,8 @@ const AlertasEstoque = () => {
                       ))}
                     </TableBody>
                   </Table>
-                </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
