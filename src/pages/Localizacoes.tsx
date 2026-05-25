@@ -36,7 +36,7 @@ const Localizacoes = () => {
     try {
       const { data, error } = await supabase
         .from("localizacoes")
-        .select("*, almoxarifados(nome, codigo)")
+        .select("*, almoxarifados(nome, descricao)")
         .order("codigo", { ascending: true });
 
       if (error) throw error;

@@ -24,7 +24,7 @@ const Movimentacoes = () => {
         .select(`
           *,
           produtos(sku, nome),
-          profiles(nome_completo),
+          profiles!usuario_id(nome_completo),
           lotes(numero_lote),
           localizacao_origem:localizacoes!movimentacoes_localizacao_origem_id_fkey(codigo, rua, prateleira),
           localizacao_destino:localizacoes!movimentacoes_localizacao_destino_id_fkey(codigo, rua, prateleira)

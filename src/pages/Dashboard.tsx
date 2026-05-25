@@ -168,7 +168,7 @@ const Dashboard = () => {
 
       const { data: movements } = await supabase
         .from("movimentacoes")
-        .select("*, produtos(sku, nome), profiles(nome_completo)")
+        .select("*, produtos(sku, nome), profiles!usuario_id(nome_completo)")
         .order("realizada_em", { ascending: false })
         .limit(5);
 
