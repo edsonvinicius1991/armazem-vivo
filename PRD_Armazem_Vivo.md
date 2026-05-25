@@ -5,7 +5,7 @@
 
 O **Armazém Vivo** é uma aplicação web responsiva para operar e controlar processos de almoxarifado ponta a ponta, reduzindo erros, melhorando acurácia de estoque e aumentando produtividade operacional.
 
-A solução consolida operações de recebimento, armazenagem, separação, packing, expedição, transferências e inventário, com relatórios e dashboards gerenciais para decisão rápida.
+A solução consolida operações de recebimento, armazenagem, separação, packing, expedição, transferências e inventário, com relatórios e dashboards gerenciais para decisão rápida. A plataforma é complementada por um Assistente Inteligente (chatbot baseado em IA) que facilita as operações e a extração de dados através de linguagem natural.
 
 Este PRD descreve o que construir, para quem e por que agora, garantindo alinhamento de valor e viabilidade em releases iterativas.
 
@@ -105,6 +105,11 @@ Este PRD descreve o que construir, para quem e por que agora, garantindo alinham
 - **Ajustes controlados** com motivos obrigatórios
 - **Devoluções RMA** com inspeção e retorno ao estoque
 
+#### 5.7 Assistente Inteligente de WMS (Antigravity WMS)
+- **Chatbot Integrado:** Processamento de linguagem natural utilizando o modelo LLM Gemini.
+- **Consultas em Tempo Real:** Permite consultar saldo de estoque, KPIs operacionais, alertas de lotes próximos ao vencimento e produtividade de picking.
+- **Integração Segura:** O assistente acessa o banco PostgreSQL do Supabase via Edge Functions utilizando Function Calling para fornecer respostas precisas e baseadas em dados atualizados.
+
 ### 6. Regras de Negócio Críticas
 
 #### 6.1 Controle de Estoque
@@ -174,12 +179,19 @@ Este PRD descreve o que construir, para quem e por que agora, garantindo alinham
 - **Inventário:** Data, tipo, status, responsável
 - **Usuário:** Perfil, permissões, almoxarifado
 - **Auditoria:** Ação, usuário, timestamp, dados_anteriores, dados_novos
+- **Alerta:** Registro de alerta (vencimentos e estoque crítico) com criticidade e status de resolução.
 
 #### 9.2 Relacionamentos Críticos
 - **Produto ↔ Lote:** 1:N (um produto pode ter múltiplos lotes)
 - **Localização ↔ Estoque:** 1:N (uma localização pode ter múltiplos produtos)
 - **Movimentação ↔ Usuário:** N:1 (múltiplas movimentações por usuário)
 - **Almoxarifado ↔ Localização:** 1:N (um almoxarifado tem múltiplas localizações)
+
+#### 9.3 Views e Triggers Críticas
+- **vw_estoque_consolidado:** View agregadora de estoque por produto, fornecendo quantidade total consolidada e indicador de status (CRÍTICO, BAIXO, EXCESSO, NORMAL).
+- **vw_lotes_vencimento:** Lista todos os lotes calculando automaticamente dias restantes e status de vencimento (VENCIDO, VENCENDO_30_DIAS, etc.).
+- **Triggers de Movimentação e Auditoria:** Ao criar uma `movimentacao`, os triggers atualizam imediatamente as tabelas de `estoque_localizacao` (garantindo atomicidade) e gravam as diferenças em `historico_estoque`.
+- **Triggers de Alerta:** Avaliam regras de ponto de reposição em tempo real, disparando ou resolvendo registros na tabela `alertas_estoque`.
 
 ### 10. Fluxos Principais
 
@@ -206,6 +218,12 @@ Este PRD descreve o que construir, para quem e por que agora, garantindo alinham
 2. **Execução** → Contagem física com dispositivos móveis
 3. **Reconciliação** → Comparação com sistema
 4. **Ajustes** → Correções aprovadas com auditoria
+
+#### 10.5 Consulta de Dados Natural com Inteligência Artificial
+1. **Pergunta:** Usuário abre o assistente na interface e pergunta em linguagem natural (ex: "Qual o giro de estoque da categoria Fixação?").
+2. **Processamento (Edge Function):** A solicitação passa pela função `chat`, que conecta-se à API Gemini e avalia o contexto.
+3. **Execução de Tool:** A LLM decide invocar as ferramentas analíticas cadastradas (`get_kpi_metrics`, `get_stock_summary`, etc), as quais buscam dados estruturados do banco de forma segura.
+4. **Devolução do Relatório:** A resposta estruturada é entregue ao chat em formato Markdown (com tabelas de dados) instantaneamente.
 
 ### 11. Requisitos Não-Funcionais
 
@@ -246,7 +264,9 @@ Este PRD descreve o que construir, para quem e por que agora, garantindo alinham
 #### 13.1 Stack Tecnológico
 - **Frontend:** React 18.3.1 + TypeScript + Vite
 - **UI/UX:** Tailwind CSS + Radix UI + shadcn/ui
-- **Backend:** Supabase (PostgreSQL + Auth + Realtime)
+- **Backend/Database:** Supabase (PostgreSQL + Auth + Realtime)
+- **Funções Serverless:** Supabase Edge Functions (Deno) hospedando a lógica de backend isolada (ex: Chatbot).
+- **Inteligência Artificial:** Integração via Google Gemini API nativa com Function Calling e Agentic Workflow.
 - **State Management:** TanStack React Query
 - **Forms:** React Hook Form + Zod
 

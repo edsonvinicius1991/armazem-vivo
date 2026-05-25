@@ -52,7 +52,7 @@ export async function executeToolCall(
           produto_id,
           localizacao_id,
           lote_id,
-          produtos!inner (id, sku, nome, categoria, unidade, estoque_minimo, estoque_maximo, status),
+          produtos!inner (id, sku, nome, categoria, unidade_medida, estoque_minimo, estoque_maximo, status),
           localizacoes!inner (id, codigo, tipo, almoxarifado_id)
         `);
 
@@ -103,7 +103,7 @@ export async function executeToolCall(
                         sku,
                         nome: item.produtos?.nome,
                         categoria: item.produtos?.categoria,
-                        unidade: item.produtos?.unidade,
+                        unidade_medida: item.produtos?.unidade_medida,
                         estoque_minimo: Number(item.produtos?.estoque_minimo ?? 0),
                         estoque_maximo: Number(item.produtos?.estoque_maximo ?? 0),
                         quantidade_total: 0,
