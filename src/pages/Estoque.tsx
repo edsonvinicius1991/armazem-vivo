@@ -8,6 +8,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { MovimentacaoForm } from "@/components/forms/MovimentacaoForm";
 import { 
   Package, 
   Search, 
@@ -650,6 +651,20 @@ const Estoque = () => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={showMovimentacaoDialog} onOpenChange={setShowMovimentacaoDialog}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Nova Movimentação</DialogTitle>
+          </DialogHeader>
+          <MovimentacaoForm
+            onSuccess={() => {
+              setShowMovimentacaoDialog(false);
+              carregarEstoqueConsolidado();
+            }}
+            onCancel={() => setShowMovimentacaoDialog(false)}
+          />
         </DialogContent>
       </Dialog>
     </div>

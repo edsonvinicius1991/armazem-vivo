@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -146,20 +146,16 @@ export function MovimentacaoForm({ onSuccess, onCancel }: MovimentacaoFormProps)
           render={({ field }) => (
             <FormItem>
               <FormLabel>Produto *</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o produto" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {produtos.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.sku} — {p.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <SearchableSelect
+                  options={produtos.map((p) => ({ value: p.id, label: `${p.sku} — ${p.nome}` }))}
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  placeholder="Selecione o produto"
+                  searchPlaceholder="Pesquisar por SKU ou nome..."
+                  emptyMessage="Nenhum produto encontrado."
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -173,20 +169,16 @@ export function MovimentacaoForm({ onSuccess, onCancel }: MovimentacaoFormProps)
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Tipo *</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tipo" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {tiposMovimentacao.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>
-                        {t.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <SearchableSelect
+                    options={tiposMovimentacao}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    placeholder="Selecione o tipo"
+                    searchPlaceholder="Pesquisar tipo..."
+                    emptyMessage="Tipo não encontrado."
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -221,20 +213,16 @@ export function MovimentacaoForm({ onSuccess, onCancel }: MovimentacaoFormProps)
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Localização de Origem {tipoSelecionado === "transferencia" ? "*" : ""}</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a origem" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {localizacoes.map((l) => (
-                      <SelectItem key={l.id} value={l.id}>
-                        {l.codigo}{l.descricao ? ` — ${l.descricao}` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <SearchableSelect
+                    options={localizacoes.map((l) => ({ value: l.id, label: l.descricao ? `${l.codigo} — ${l.descricao}` : l.codigo }))}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    placeholder="Selecione a origem"
+                    searchPlaceholder="Pesquisar localização..."
+                    emptyMessage="Localização não encontrada."
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -249,20 +237,16 @@ export function MovimentacaoForm({ onSuccess, onCancel }: MovimentacaoFormProps)
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Localização de Destino {tipoSelecionado === "transferencia" ? "*" : ""}</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o destino" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {localizacoes.map((l) => (
-                      <SelectItem key={l.id} value={l.id}>
-                        {l.codigo}{l.descricao ? ` — ${l.descricao}` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <SearchableSelect
+                    options={localizacoes.map((l) => ({ value: l.id, label: l.descricao ? `${l.codigo} — ${l.descricao}` : l.codigo }))}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    placeholder="Selecione o destino"
+                    searchPlaceholder="Pesquisar localização..."
+                    emptyMessage="Localização não encontrada."
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -277,20 +261,16 @@ export function MovimentacaoForm({ onSuccess, onCancel }: MovimentacaoFormProps)
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Lote</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o lote (opcional)" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {lotes.map((l) => (
-                      <SelectItem key={l.id} value={l.id}>
-                        {l.numero_lote}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <SearchableSelect
+                    options={lotes.map((l) => ({ value: l.id, label: l.numero_lote }))}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    placeholder="Selecione o lote (opcional)"
+                    searchPlaceholder="Pesquisar lote..."
+                    emptyMessage="Lote não encontrado."
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
