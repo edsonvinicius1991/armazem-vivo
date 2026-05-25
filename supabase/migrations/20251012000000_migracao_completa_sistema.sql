@@ -5,6 +5,7 @@
 -- =====================================================
 
 -- Habilitar extensões necessárias
+SELECT pg_catalog.set_config('search_path', 'public,extensions', false);
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- =====================================================
@@ -238,35 +239,35 @@ ALTER TABLE recebimento_itens ENABLE ROW LEVEL SECURITY;
 ALTER TABLE movimentacoes ENABLE ROW LEVEL SECURITY;
 
 -- Políticas básicas (permitir acesso autenticado)
-CREATE POLICY IF NOT EXISTS "Usuários podem ver próprio perfil" ON profiles
+CREATE POLICY "Usuários podem ver próprio perfil" ON profiles
     FOR SELECT USING (auth.uid() = id);
 
-CREATE POLICY IF NOT EXISTS "Usuários podem atualizar próprio perfil" ON profiles
+CREATE POLICY "Usuários podem atualizar próprio perfil" ON profiles
     FOR UPDATE USING (auth.uid() = id);
 
 -- Políticas para outras tabelas (acesso geral para usuários autenticados)
-CREATE POLICY IF NOT EXISTS "Acesso autenticado" ON almoxarifados
+CREATE POLICY "Acesso autenticado" ON almoxarifados
     FOR ALL USING (auth.role() = 'authenticated');
 
-CREATE POLICY IF NOT EXISTS "Acesso autenticado" ON localizacoes
+CREATE POLICY "Acesso autenticado" ON localizacoes
     FOR ALL USING (auth.role() = 'authenticated');
 
-CREATE POLICY IF NOT EXISTS "Acesso autenticado" ON produtos
+CREATE POLICY "Acesso autenticado" ON produtos
     FOR ALL USING (auth.role() = 'authenticated');
 
-CREATE POLICY IF NOT EXISTS "Acesso autenticado" ON lotes
+CREATE POLICY "Acesso autenticado" ON lotes
     FOR ALL USING (auth.role() = 'authenticated');
 
-CREATE POLICY IF NOT EXISTS "Acesso autenticado" ON estoque_localizacao
+CREATE POLICY "Acesso autenticado" ON estoque_localizacao
     FOR ALL USING (auth.role() = 'authenticated');
 
-CREATE POLICY IF NOT EXISTS "Acesso autenticado" ON recebimentos
+CREATE POLICY "Acesso autenticado" ON recebimentos
     FOR ALL USING (auth.role() = 'authenticated');
 
-CREATE POLICY IF NOT EXISTS "Acesso autenticado" ON recebimento_itens
+CREATE POLICY "Acesso autenticado" ON recebimento_itens
     FOR ALL USING (auth.role() = 'authenticated');
 
-CREATE POLICY IF NOT EXISTS "Acesso autenticado" ON movimentacoes
+CREATE POLICY "Acesso autenticado" ON movimentacoes
     FOR ALL USING (auth.role() = 'authenticated');
 
 -- =====================================================
@@ -310,9 +311,9 @@ WHERE NOT EXISTS (
 -- Inserir lotes exemplo (se não existirem)
 INSERT INTO lotes (id, produto_id, numero_lote, data_fabricacao, data_validade, quantidade_inicial, quantidade_atual, status)
 SELECT * FROM (VALUES
-    ('550e8400-e29b-41d4-a716-446655440008'::uuid, '550e8400-e29b-41d4-a716-446655440005'::uuid, 'LOTE001-2024', '2024-01-15', '2026-01-15', 500, 500, 'disponivel'::lote_status),
-    ('550e8400-e29b-41d4-a716-446655440009'::uuid, '550e8400-e29b-41d4-a716-446655440006'::uuid, 'LOTE002-2024', '2024-01-20', '2026-01-20', 1000, 1000, 'disponivel'::lote_status),
-    ('550e8400-e29b-41d4-a716-44665544000a'::uuid, '550e8400-e29b-41d4-a716-446655440007'::uuid, 'LOTE003-2024', '2024-01-25', '2026-01-25', 2000, 2000, 'disponivel'::lote_status)
+    ('550e8400-e29b-41d4-a716-446655440008'::uuid, '550e8400-e29b-41d4-a716-446655440005'::uuid, 'LOTE001-2024', '2024-01-15'::date, '2026-01-15'::date, 500, 500, 'disponivel'::lote_status),
+    ('550e8400-e29b-41d4-a716-446655440009'::uuid, '550e8400-e29b-41d4-a716-446655440006'::uuid, 'LOTE002-2024', '2024-01-20'::date, '2026-01-20'::date, 1000, 1000, 'disponivel'::lote_status),
+    ('550e8400-e29b-41d4-a716-44665544000a'::uuid, '550e8400-e29b-41d4-a716-446655440007'::uuid, 'LOTE003-2024', '2024-01-25'::date, '2026-01-25'::date, 2000, 2000, 'disponivel'::lote_status)
 ) AS v(id, produto_id, numero_lote, data_fabricacao, data_validade, quantidade_inicial, quantidade_atual, status)
 WHERE NOT EXISTS (
     SELECT 1 FROM lotes WHERE numero_lote = v.numero_lote AND produto_id = v.produto_id

@@ -1,15 +1,11 @@
 -- =====================================================
--- SISTEMA DE CONTROLE DE ESTOQUE AVANÇADO
--- Data: 2025-01-15
--- Descrição: Implementa controle de estoque integrado com alertas automáticos
--- =====================================================
 
 -- =====================================================
 -- 1. TABELA DE ALERTAS DE ESTOQUE
 -- =====================================================
 
 CREATE TABLE IF NOT EXISTS alertas_estoque (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     produto_id UUID REFERENCES produtos(id) ON DELETE CASCADE,
     tipo_alerta VARCHAR(50) NOT NULL, -- 'estoque_minimo', 'estoque_maximo', 'produto_vencido', 'produto_vencendo'
     nivel_criticidade VARCHAR(20) DEFAULT 'medio', -- 'baixo', 'medio', 'alto', 'critico'
@@ -30,7 +26,7 @@ CREATE TABLE IF NOT EXISTS alertas_estoque (
 -- =====================================================
 
 CREATE TABLE IF NOT EXISTS historico_estoque (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     produto_id UUID REFERENCES produtos(id) ON DELETE CASCADE,
     lote_id UUID REFERENCES lotes(id) ON DELETE CASCADE,
     localizacao_id UUID REFERENCES localizacoes(id) ON DELETE CASCADE,
@@ -101,8 +97,8 @@ INNER JOIN produtos p ON l.produto_id = p.id
 LEFT JOIN estoque_localizacao el ON l.id = el.lote_id
 WHERE l.status = 'disponivel' 
   AND l.data_validade IS NOT NULL
-  AND COALESCE(SUM(el.quantidade), 0) > 0
-GROUP BY l.id, l.numero_lote, l.produto_id, p.sku, p.nome, l.data_validade;
+GROUP BY l.id, l.numero_lote, l.produto_id, p.sku, p.nome, l.data_validade
+HAVING COALESCE(SUM(el.quantidade), 0) > 0;
 
 -- =====================================================
 -- 5. FUNÇÃO PARA CALCULAR ESTOQUE TOTAL DE UM PRODUTO
@@ -379,14 +375,14 @@ ALTER TABLE alertas_estoque ENABLE ROW LEVEL SECURITY;
 ALTER TABLE historico_estoque ENABLE ROW LEVEL SECURITY;
 
 -- Políticas para alertas
-CREATE POLICY IF NOT EXISTS "Usuários autenticados podem ver alertas" ON alertas_estoque
+CREATE POLICY "Usuários autenticados podem ver alertas" ON alertas_estoque
     FOR SELECT USING (auth.role() = 'authenticated');
 
-CREATE POLICY IF NOT EXISTS "Usuários autenticados podem resolver alertas" ON alertas_estoque
+CREATE POLICY "Usuários autenticados podem resolver alertas" ON alertas_estoque
     FOR UPDATE USING (auth.role() = 'authenticated');
 
 -- Políticas para histórico
-CREATE POLICY IF NOT EXISTS "Usuários autenticados podem ver histórico" ON historico_estoque
+CREATE POLICY "Usuários autenticados podem ver histórico" ON historico_estoque
     FOR SELECT USING (auth.role() = 'authenticated');
 
 -- =====================================================

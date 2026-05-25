@@ -59,7 +59,7 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN NULL; END $$;
 
 -- Políticas básicas de acesso autenticado (mantém compatibilidade com app)
-CREATE POLICY IF NOT EXISTS "Acesso autenticado movimentacoes" ON public.movimentacoes
+CREATE POLICY "Acesso autenticado movimentacoes" ON public.movimentacoes
   FOR ALL USING (auth.role() = 'authenticated');
 
 -- Fim do alinhamento
