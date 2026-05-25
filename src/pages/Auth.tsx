@@ -212,7 +212,10 @@ const Auth = () => {
               width: `${Math.floor(Math.random() * 5) + 3}px`,
               height: `${Math.floor(Math.random() * 5) + 3}px`,
               left: `${Math.floor(Math.random() * 100)}%`,
-              animation: `float ${Math.floor(Math.random() * 25) + 15}s infinite linear`,
+              animationName: 'float',
+              animationDuration: `${Math.floor(Math.random() * 25) + 15}s`,
+              animationIterationCount: 'infinite',
+              animationTimingFunction: 'linear',
               animationDelay: `-${Math.floor(Math.random() * 12)}s`,
             }}
           />

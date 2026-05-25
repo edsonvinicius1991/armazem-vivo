@@ -20,7 +20,7 @@ export interface AlertaEstoque {
     sku: string;
     nome: string;
     categoria: string;
-    unidade: string;
+    unidade_medida: string;
   };
 }
 
@@ -57,7 +57,7 @@ export const useAlertasEstoque = () => {
         .from('alertas_estoque')
         .select(`
           *,
-          produtos!inner(sku, nome, categoria, unidade)
+          produtos!inner(sku, nome, categoria, unidade_medida)
         `)
         .order('data_criacao', { ascending: false });
 

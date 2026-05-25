@@ -85,7 +85,7 @@ export function ProdutoDetailsDialog({ produto, open, onOpenChange }: ProdutoDet
                   </div>
                   <div>
                     <span className="text-sm font-medium text-muted-foreground">Unidade:</span>
-                    <p>{produto.unidade}</p>
+                    <p>{produto.unidade_medida}</p>
                   </div>
                 </div>
               </div>
@@ -143,7 +143,7 @@ export function ProdutoDetailsDialog({ produto, open, onOpenChange }: ProdutoDet
           )}
 
           {/* Dimensões e Peso */}
-          {(produto.peso_kg || produto.altura_cm || produto.largura_cm || produto.profundidade_cm) && (
+          {(produto.peso_unitario || produto.dimensoes) && (
             <>
               <div>
                 <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
@@ -151,31 +151,31 @@ export function ProdutoDetailsDialog({ produto, open, onOpenChange }: ProdutoDet
                   Dimensões e Peso
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {produto.peso_kg && (
+                  {produto.peso_unitario && (
                     <div>
                       <span className="text-sm font-medium text-muted-foreground flex items-center gap-1">
                         <Weight className="h-4 w-4" />
                         Peso:
                       </span>
-                      <p>{produto.peso_kg} kg</p>
+                      <p>{produto.peso_unitario} kg</p>
                     </div>
                   )}
-                  {produto.altura_cm && (
+                  {produto.dimensoes?.altura && (
                     <div>
                       <span className="text-sm font-medium text-muted-foreground">Altura:</span>
-                      <p>{produto.altura_cm} cm</p>
+                      <p>{produto.dimensoes.altura} cm</p>
                     </div>
                   )}
-                  {produto.largura_cm && (
+                  {produto.dimensoes?.largura && (
                     <div>
                       <span className="text-sm font-medium text-muted-foreground">Largura:</span>
-                      <p>{produto.largura_cm} cm</p>
+                      <p>{produto.dimensoes.largura} cm</p>
                     </div>
                   )}
-                  {produto.profundidade_cm && (
+                  {produto.dimensoes?.profundidade && (
                     <div>
                       <span className="text-sm font-medium text-muted-foreground">Profundidade:</span>
-                      <p>{produto.profundidade_cm} cm</p>
+                      <p>{produto.dimensoes.profundidade} cm</p>
                     </div>
                   )}
                 </div>
@@ -185,7 +185,7 @@ export function ProdutoDetailsDialog({ produto, open, onOpenChange }: ProdutoDet
           )}
 
           {/* Informações Financeiras */}
-          {(produto.custo_unitario || produto.preco_venda) && (
+          {produto.valor_unitario && (
             <>
               <div>
                 <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
@@ -194,12 +194,8 @@ export function ProdutoDetailsDialog({ produto, open, onOpenChange }: ProdutoDet
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <span className="text-sm font-medium text-muted-foreground">Custo Unitário:</span>
-                    <p className="font-medium">{formatCurrency(produto.custo_unitario)}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">Preço de Venda:</span>
-                    <p className="font-medium">{formatCurrency(produto.preco_venda)}</p>
+                    <span className="text-sm font-medium text-muted-foreground">Valor Unitário:</span>
+                    <p className="font-medium">{formatCurrency(produto.valor_unitario)}</p>
                   </div>
                 </div>
               </div>

@@ -118,12 +118,12 @@ const Dashboard = () => {
 
       const { data: estoqueData } = await supabase
         .from("estoque_localizacao")
-        .select("quantidade, produtos!inner(custo_unitario)");
+        .select("quantidade, produtos!inner(valor_unitario)");
 
       let valorEstoque = 0;
       if (estoqueData) {
         valorEstoque = estoqueData.reduce((acc, item: any) => {
-          return acc + (item.quantidade * (item.produtos?.custo_unitario || 0));
+          return acc + (item.quantidade * (item.produtos?.valor_unitario || 0));
         }, 0);
       }
 

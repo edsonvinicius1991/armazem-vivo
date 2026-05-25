@@ -45,7 +45,7 @@ export default function Lotes() {
             id,
             nome,
             sku,
-            unidade
+            unidade_medida
           )
         `)
         .order("created_at", { ascending: false });
@@ -305,7 +305,7 @@ export default function Lotes() {
                       <div className="text-sm text-gray-600">
                         <p><strong>SKU:</strong> {lote.produtos?.sku}</p>
                         <p><strong>Produto:</strong> {lote.produtos?.nome}</p>
-                        <p><strong>Unidade:</strong> {lote.produtos?.unidade}</p>
+                        <p><strong>Unidade:</strong> {lote.produtos?.unidade_medida}</p>
                       </div>
                     </div>
                     <DropdownMenu>
@@ -432,7 +432,7 @@ export default function Lotes() {
                       </TableCell>
                       <TableCell>{lote.produtos?.nome}</TableCell>
                       <TableCell>{lote.produtos?.sku}</TableCell>
-                      <TableCell>{lote.produtos?.unidade}</TableCell>
+                      <TableCell>{lote.produtos?.unidade_medida}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           <Badge className={getStatusColor(lote.status)}>

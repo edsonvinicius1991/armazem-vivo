@@ -73,7 +73,7 @@ export const RecebimentoForm = ({ recebimento, onSuccess, modo = "criacao" }: Re
     try {
       const { data, error } = await supabase
         .from("produtos")
-        .select("id, nome, sku, unidade")
+        .select("id, nome, sku, unidade_medida")
         .eq("status", "ativo")
         .order("nome");
 
