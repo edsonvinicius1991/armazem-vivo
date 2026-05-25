@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { SyncStatus, SyncIndicator } from "@/components/SyncStatus";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ChatPanel } from "@/components/ChatPanel";
 
 interface LayoutProps {
   children: ReactNode;
@@ -322,6 +323,7 @@ const Layout = ({ children }: LayoutProps) => {
           {children}
         </div>
       </main>
+      <ChatPanel />
     </div>
   );
 };
