@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import StatCard from "@/components/StatCard";
 import HologramAnimation from "@/components/HologramAnimation";
-import { Package, MapPin, TrendingUp, DollarSign, AlertTriangle } from "lucide-react";
+import { Package, MapPin, TrendingUp, DollarSign, AlertTriangle, Loader2 } from "lucide-react";
 import techWarehouseImage from "../assets/tech-warehouse.png";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +42,7 @@ const Dashboard = () => {
     produtosNormais: 0,
   });
 
+  const [loading, setLoading] = useState(true);
   const [recentMovements, setRecentMovements] = useState<any[]>([]);
   const [movimentacoesPorTipo, setMovimentacoesPorTipo] = useState<any[]>([]);
   const [movimentacoesPorDia, setMovimentacoesPorDia] = useState<any[]>([]);
@@ -100,95 +101,67 @@ const Dashboard = () => {
     { valor: 'anual' as PeriodoFiltro, label: 'Anual' },
   ];
 
-  useEffect(() => {
-    loadDashboardData();
-  }, [periodoSelecionado]);
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
+    setLoading(true);
     try {
-      const { count: totalProdutos } = await supabase
-        .from("produtos")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "ativo");
-
-      const { count: totalLocalizacoes } = await supabase
-        .from("localizacoes")
-        .select("*", { count: "exact", head: true })
-        .eq("ativo", true);
-
-      const { data: estoqueData } = await supabase
-        .from("estoque_localizacao")
-        .select("quantidade, produtos!inner(valor_unitario)");
-
-      let valorEstoque = 0;
-      if (estoqueData) {
-        valorEstoque = estoqueData.reduce((acc, item: any) => {
-          return acc + (item.quantidade * (item.produtos?.valor_unitario || 0));
-        }, 0);
-      }
-
       const hoje = new Date().toISOString().split("T")[0];
-      const { count: movimentacoesHoje } = await supabase
-        .from("movimentacoes")
-        .select("*", { count: "exact", head: true })
-        .gte("realizada_em", `${hoje}T00:00:00`);
 
-      const { data: produtosEstoque } = await supabase
-        .from("produtos")
-        .select("id, sku, nome, estoque_minimo");
+      // Todas as queries independentes em paralelo
+      const [
+        { count: totalProdutos },
+        { count: totalLocalizacoes },
+        { count: almoxarifadosAtivos },
+        { count: movimentacoesHoje },
+        { data: estoqueData },
+        { data: estoqueConsolidado },
+        { data: movements },
+      ] = await Promise.all([
+        supabase.from("produtos").select("*", { count: "exact", head: true }).eq("status", "ativo"),
+        supabase.from("localizacoes").select("*", { count: "exact", head: true }).eq("ativo", true),
+        supabase.from("almoxarifados").select("*", { count: "exact", head: true }).eq("ativo", true),
+        supabase.from("movimentacoes").select("*", { count: "exact", head: true }).gte("realizada_em", `${hoje}T00:00:00`),
+        supabase.from("estoque_localizacao").select("quantidade, produtos!inner(valor_unitario)"),
+        supabase.from("vw_estoque_consolidado").select("quantidade_total, estoque_minimo"),
+        supabase.from("movimentacoes").select("*, produtos(sku, nome)").order("realizada_em", { ascending: false }).limit(5),
+      ]);
 
-      let produtosAbaixoMinimo = 0;
-      if (produtosEstoque) {
-        for (const produto of produtosEstoque) {
-          const { data: estoque } = await supabase
-            .from("estoque_localizacao")
-            .select("quantidade")
-            .eq("produto_id", produto.id);
+      const valorEstoque = (estoqueData || []).reduce((acc, item: any) =>
+        acc + (item.quantidade * (item.produtos?.valor_unitario || 0)), 0);
 
-          const qtdTotal = estoque?.reduce((acc, e) => acc + Number(e.quantidade), 0) || 0;
-          if (qtdTotal < (produto.estoque_minimo || 0)) {
-            produtosAbaixoMinimo++;
-          }
-        }
-      }
-
-      const { count: almoxarifadosAtivos } = await supabase
-        .from("almoxarifados")
-        .select("*", { count: "exact", head: true })
-        .eq("ativo", true);
+      const produtosAbaixoMinimo = (estoqueConsolidado || []).filter(
+        (item: any) => (item.quantidade_total || 0) < (item.estoque_minimo || 0)
+      ).length;
 
       setStats({
         totalProdutos: totalProdutos || 0,
         totalLocalizacoes: totalLocalizacoes || 0,
-        valorEstoque: valorEstoque,
+        valorEstoque,
         movimentacoesHoje: movimentacoesHoje || 0,
         produtosAbaixoEstoqueMinimo: produtosAbaixoMinimo,
         almoxarifadosAtivos: almoxarifadosAtivos || 0,
       });
 
-      const { data: movements } = await supabase
-        .from("movimentacoes")
-        .select("*, produtos(sku, nome), profiles!usuario_id(nome_completo)")
-        .order("realizada_em", { ascending: false })
-        .limit(5);
-
       setRecentMovements(movements || []);
 
-      // Carregar estatísticas de estoque
-      const statsEstoque = await obterEstatisticasEstoque();
+      // Estatísticas de estoque e gráficos em paralelo
+      const [statsEstoque] = await Promise.all([
+        obterEstatisticasEstoque(),
+        loadChartsData(),
+      ]);
       setEstatisticasEstoque(statsEstoque);
-
-      // Carregar dados para gráficos
-      await loadChartsData();
     } catch (error: any) {
       const msg = String(error?.message || "").toLowerCase();
-      if (error?.name === "AbortError" || msg.includes("abort")) {
-        // silencioso em caso de navegação/abort
-      } else {
+      if (error?.name !== "AbortError" && !msg.includes("abort")) {
         console.error("Erro ao carregar dados do dashboard:", error);
       }
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [periodoSelecionado]);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
 
   const loadChartsData = async () => {
     try {
@@ -331,8 +304,62 @@ const Dashboard = () => {
     return colors[tipo] || "#6b7280";
   };
 
+  if (loading) {
+    return (
+      <div className={`space-y-6 ${isMobile ? 'px-2' : ''}`}>
+        {/* Hero skeleton */}
+        <div className={`w-full rounded-lg bg-slate-900 animate-pulse ${
+          isMobile ? 'h-[140px]' : 'h-[180px] sm:h-[210px] md:h-[240px] lg:h-[270px]'
+        }`}>
+          <div className="flex items-center justify-center h-full">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="h-8 w-8 text-slate-400 animate-spin" />
+              <span className="text-slate-400 text-sm font-medium tracking-widest uppercase">Carregando dashboard</span>
+              <div className="flex gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* Title skeleton */}
+        <div className="space-y-2">
+          <div className="h-8 w-48 rounded-md bg-muted animate-pulse" />
+          <div className="h-4 w-72 rounded-md bg-muted animate-pulse" />
+        </div>
+        {/* KPI cards skeleton */}
+        <div className={`grid gap-4 ${
+          isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3'
+        }`}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="rounded-xl border bg-card p-5 space-y-3 animate-pulse">
+              <div className="flex items-center justify-between">
+                <div className="h-4 w-32 rounded bg-muted" />
+                <div className="h-8 w-8 rounded-full bg-muted" />
+              </div>
+              <div className="h-8 w-24 rounded bg-muted" />
+              <div className="h-3 w-40 rounded bg-muted" />
+            </div>
+          ))}
+        </div>
+        {/* Charts skeleton */}
+        <div className={`grid gap-4 ${
+          isMobile ? 'grid-cols-1' : 'md:grid-cols-2'
+        }`}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-xl border bg-card p-5 space-y-3 animate-pulse">
+              <div className="h-5 w-40 rounded bg-muted" />
+              <div className="h-48 rounded-lg bg-muted" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`space-y-6 ${isMobile ? 'px-2' : ''}`}>
+    <div className={`space-y-6 ${isMobile ? 'px-2' : ''}` }>
       {/* Hero Hologram Animation */}
       <div className={`
         w-full overflow-hidden rounded-lg shadow-sm bg-slate-900
