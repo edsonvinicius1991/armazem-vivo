@@ -305,6 +305,16 @@ export async function executeToolCall(
                 });
             }
 
+            // Calcula campos derivados para facilitar análises pelo modelo
+            for (const p of Object.values(grouped)) {
+                p.disponivel = p.quantidade_total - p.reservado_total;
+                // percentual_minimo: 100% = exatamente no mínimo. <100% = abaixo do mínimo. >100% = acima.
+                p.percentual_minimo = p.estoque_minimo > 0
+                    ? Number(((p.quantidade_total / p.estoque_minimo) * 100).toFixed(1))
+                    : null;
+                p.abaixo_minimo = p.estoque_minimo > 0 && p.quantidade_total < p.estoque_minimo;
+            }
+
             const produtosAgrupados = Object.values(grouped);
             const truncado = (estoqueData?.length ?? 0) >= QUERY_LIMIT;
 
