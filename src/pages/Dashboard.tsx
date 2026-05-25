@@ -596,7 +596,7 @@ const Dashboard = () => {
                       {movement.produtos?.nome}
                     </p>
                     <p className={`text-muted-foreground mt-1 ${isMobile ? 'text-xs' : 'text-xs'}`}>
-                      Por {movement.profiles?.nome_completo} •{" "}
+                      Por {movement.profiles?.full_name} •{" "}
                       {new Date(movement.realizada_em).toLocaleString("pt-BR")}
                     </p>
                   </div>

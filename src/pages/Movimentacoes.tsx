@@ -6,10 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Download, Filter, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MovimentacaoForm } from "@/components/forms/MovimentacaoForm";
 
 const Movimentacoes = () => {
   const [movimentacoes, setMovimentacoes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dialogAberto, setDialogAberto] = useState(false);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -24,10 +27,10 @@ const Movimentacoes = () => {
         .select(`
           *,
           produtos(sku, nome),
-          profiles!usuario_id(nome_completo),
+          profiles!usuario_id(full_name),
           lotes(numero_lote),
-          localizacao_origem:localizacoes!movimentacoes_localizacao_origem_id_fkey(codigo, rua, prateleira),
-          localizacao_destino:localizacoes!movimentacoes_localizacao_destino_id_fkey(codigo, rua, prateleira)
+          localizacao_origem:localizacoes!movimentacoes_localizacao_origem_id_fkey(codigo, descricao),
+          localizacao_destino:localizacoes!movimentacoes_localizacao_destino_id_fkey(codigo, descricao)
         `)
         .order("realizada_em", { ascending: false })
         .limit(50);
@@ -122,6 +125,7 @@ const Movimentacoes = () => {
           <Button 
             className={`gap-2 ${isMobile ? 'flex-1' : ''}`}
             size={isMobile ? "sm" : "default"}
+            onClick={() => setDialogAberto(true)}
           >
             <Plus className="h-4 w-4" />
             {isMobile ? 'Nova' : 'Nova Movimentação'}
@@ -227,7 +231,7 @@ const Movimentacoes = () => {
                     )}
 
                     <div className={`${isMobile ? 'text-xs' : 'text-xs'} text-muted-foreground ${isMobile ? 'pt-1' : 'pt-2'} border-t border-border`}>
-                      Por {mov.profiles?.nome_completo} •{" "}
+                      Por {mov.profiles?.full_name} •{" "}
                       {new Date(mov.realizada_em).toLocaleString("pt-BR", {
                         day: '2-digit',
                         month: '2-digit',
@@ -243,6 +247,20 @@ const Movimentacoes = () => {
           </CardContent>
         </Card>
       )}
+      <Dialog open={dialogAberto} onOpenChange={setDialogAberto}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Nova Movimentação</DialogTitle>
+          </DialogHeader>
+          <MovimentacaoForm
+            onSuccess={() => {
+              setDialogAberto(false);
+              loadMovimentacoes();
+            }}
+            onCancel={() => setDialogAberto(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
