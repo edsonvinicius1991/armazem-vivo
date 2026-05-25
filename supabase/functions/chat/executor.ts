@@ -10,6 +10,9 @@ function getSupabaseClient() {
     );
 }
 
+// Limite padrão para evitar timeout/OOM na Edge Function
+const QUERY_LIMIT = 200;
+
 // Calcula a data de início com base no período
 function getPeriodStartDate(period: string): Date {
     const now = new Date();
@@ -40,9 +43,184 @@ export async function executeToolCall(
     const supabase = getSupabaseClient();
 
     switch (name) {
-        // ─── SALDO DE ESTOQUE ────────────────────────────────────
+        // ─── LISTAGEM COMPLETA DE PRODUTOS ────────────────────────
+        case "list_all_products": {
+            // Query direta em produtos, sem join em estoque — nunca falha por tabela vazia
+            const t0 = Date.now();
+
+            let query = supabase
+                .from("produtos")
+                .select("id, sku, nome, categoria, unidade_medida, estoque_minimo, status")
+                .order("nome", { ascending: true })
+                .limit(100);
+
+            if (args.categoria) {
+                query = query.ilike("categoria", args.categoria as string);
+            }
+            if (args.status) {
+                query = query.eq("status", args.status as string);
+            }
+
+            const { data, error } = await query;
+            console.log(`[Tool:list_all_products] ${Date.now() - t0}ms | total=${data?.length ?? 0}`);
+
+            if (error) {
+                console.error("[Tool:list_all_products] Erro Supabase:", error.message);
+                return { error: "Erro ao listar produtos. Tente novamente." };
+            }
+
+            return {
+                timestamp_consulta: new Date().toISOString(),
+                total_produtos: (data ?? []).length,
+                produtos: (data ?? []).map((p: any) => ({
+                    sku: p.sku,
+                    nome: p.nome,
+                    categoria: p.categoria ?? "Sem categoria",
+                    unidade_medida: p.unidade_medida ?? "",
+                    estoque_minimo: Number(p.estoque_minimo ?? 0),
+                    status: p.status ?? "ativo",
+                })),
+            };
+        }
+
+        // ─── SALDO DE ESTOQUE ────────────────────────────────
+        case "search_products": {
+            // Busca produtos por nome parcial (ilike) ou SKU exato
+            const t0 = Date.now();
+
+            if (!args.nome && !args.sku) {
+                return { error: "Informe ao menos 'nome' ou 'sku' para buscar produtos." };
+            }
+
+            let query = supabase
+                .from("produtos")
+                .select("id, sku, nome, categoria, unidade_medida, estoque_minimo, status")
+                .limit(20);
+
+            if (args.sku) {
+                // Filtro exato por SKU (case-insensitive)
+                query = query.ilike("sku", args.sku as string);
+            } else if (args.nome) {
+                // Busca parcial por nome
+                query = query.ilike("nome", `%${args.nome}%`);
+            }
+
+            const { data, error } = await query;
+            console.log(`[Tool:search_products] ${Date.now() - t0}ms | nome=${args.nome ?? ""} sku=${args.sku ?? ""}`);
+
+            if (error) {
+                console.error("[Tool:search_products] Erro Supabase:", error.message);
+                return { error: "Erro ao buscar produtos. Tente novamente." };
+            }
+
+            return {
+                total_encontrados: (data ?? []).length,
+                produtos: (data ?? []).map((p: any) => ({
+                    id: p.id,
+                    sku: p.sku,
+                    nome: p.nome,
+                    categoria: p.categoria,
+                    unidade_medida: p.unidade_medida,
+                    estoque_minimo: Number(p.estoque_minimo ?? 0),
+                    status: p.status,
+                })),
+            };
+        }
+
+        case "get_product_stock": {
+            // Retorna estoque detalhado por localização de um produto específico
+            const t0 = Date.now();
+
+            if (!args.produto_id && !args.sku) {
+                return { error: "Informe 'produto_id' ou 'sku' para consultar o estoque do produto." };
+            }
+
+            // Resolve produto_id a partir do SKU se necessário
+            let produtoId = args.produto_id as string | undefined;
+            let produtoInfo: any = null;
+
+            if (!produtoId && args.sku) {
+                const { data: prodData, error: prodError } = await supabase
+                    .from("produtos")
+                    .select("id, sku, nome, categoria, unidade_medida, estoque_minimo, estoque_maximo, status")
+                    .ilike("sku", args.sku as string)
+                    .single();
+
+                if (prodError || !prodData) {
+                    return { total_registros: 0, produtos: [], mensagem: `Produto com SKU '${args.sku}' não encontrado.` };
+                }
+                produtoId = prodData.id;
+                produtoInfo = prodData;
+            }
+
+            // Busca estoque por produto_id com join em localizacoes
+            const { data: estoqueData, error: estError } = await supabase
+                .from("estoque_localizacao")
+                .select(`
+                    id,
+                    quantidade,
+                    reservado,
+                    produto_id,
+                    lote_id,
+                    produtos!inner (id, sku, nome, categoria, unidade_medida, estoque_minimo, estoque_maximo, status),
+                    localizacoes!inner (id, codigo, tipo, rua, prateleira, nivel, box)
+                `)
+                .eq("produto_id", produtoId!)
+                .limit(50);
+
+            console.log(`[Tool:get_product_stock] ${Date.now() - t0}ms | produto_id=${produtoId} sku=${args.sku ?? ""}`);
+
+            if (estError) {
+                console.error("[Tool:get_product_stock] Erro Supabase:", estError.message);
+                return { error: "Erro ao consultar estoque do produto. Tente novamente." };
+            }
+
+            const registros = estoqueData ?? [];
+
+            // Usa info do produto do primeiro registro ou da consulta prévia
+            const produto = produtoInfo ?? registros[0]?.produtos ?? null;
+
+            const quantidadeTotal = registros.reduce((acc: number, e: any) => acc + Number(e.quantidade ?? 0), 0);
+            const reservadoTotal = registros.reduce((acc: number, e: any) => acc + Number(e.reservado ?? 0), 0);
+            const estoqueMinimo = Number(produto?.estoque_minimo ?? 0);
+
+            return {
+                timestamp_consulta: new Date().toISOString(),
+                produto: produto ? {
+                    id: produto.id,
+                    sku: produto.sku,
+                    nome: produto.nome,
+                    categoria: produto.categoria,
+                    unidade_medida: produto.unidade_medida,
+                    estoque_minimo: estoqueMinimo,
+                    estoque_maximo: Number(produto.estoque_maximo ?? 0),
+                    status: produto.status,
+                } : null,
+                saldo_consolidado: {
+                    quantidade_total: quantidadeTotal,
+                    reservado_total: reservadoTotal,
+                    disponivel: quantidadeTotal - reservadoTotal,
+                    abaixo_minimo: quantidadeTotal < estoqueMinimo,
+                    saldo_negativo: quantidadeTotal < 0,
+                },
+                total_localizacoes: registros.length,
+                localizacoes: registros.map((e: any) => ({
+                    codigo: e.localizacoes?.codigo,
+                    tipo: e.localizacoes?.tipo,
+                    rua: e.localizacoes?.rua,
+                    prateleira: e.localizacoes?.prateleira,
+                    nivel: e.localizacoes?.nivel,
+                    box: e.localizacoes?.box,
+                    quantidade: Number(e.quantidade),
+                    reservado: Number(e.reservado ?? 0),
+                    lote_id: e.lote_id,
+                })),
+            };
+        }
+
         case "get_stock_summary": {
-            // Busca estoque com joins em produtos e localizacoes
+            // Busca estoque com joins left (não !inner) para não falhar com tabela vazia
+            const t0 = Date.now();
             const { data: estoqueData, error } = await supabase
                 .from("estoque_localizacao")
                 .select(`
@@ -52,11 +230,17 @@ export async function executeToolCall(
           produto_id,
           localizacao_id,
           lote_id,
-          produtos!inner (id, sku, nome, categoria, unidade_medida, estoque_minimo, estoque_maximo, status),
-          localizacoes!inner (id, codigo, tipo, almoxarifado_id)
-        `);
+          produtos (id, sku, nome, categoria, unidade_medida, estoque_minimo),
+          localizacoes (id, codigo, tipo, almoxarifado_id)
+        `)
+                .limit(QUERY_LIMIT);
 
-            if (error) return { error: error.message };
+            console.log(`[Tool:get_stock_summary] ${Date.now() - t0}ms | registros_raw=${estoqueData?.length ?? 0}`);
+
+            if (error) {
+                console.error("[Tool:get_stock_summary] Erro Supabase:", error.message);
+                return { error: "Erro ao consultar estoque. Tente novamente." };
+            }
 
             let result = estoqueData ?? [];
 
@@ -94,18 +278,19 @@ export async function executeToolCall(
                 );
             }
 
-            // Agrupa por produto para dar visão consolidada
+            // Agrupa por produto para dar visão consolidada (só inclui registros com produto válido)
             const grouped: Record<string, any> = {};
             for (const item of result) {
-                const sku = item.produtos?.sku ?? "desconhecido";
+                // Pula registros sem produto associado (join left pode retornar null)
+                if (!item.produtos) continue;
+                const sku = (item.produtos as any)?.sku ?? "desconhecido";
                 if (!grouped[sku]) {
                     grouped[sku] = {
                         sku,
-                        nome: item.produtos?.nome,
-                        categoria: item.produtos?.categoria,
-                        unidade_medida: item.produtos?.unidade_medida,
-                        estoque_minimo: Number(item.produtos?.estoque_minimo ?? 0),
-                        estoque_maximo: Number(item.produtos?.estoque_maximo ?? 0),
+                        nome: (item.produtos as any)?.nome,
+                        categoria: (item.produtos as any)?.categoria,
+                        unidade_medida: (item.produtos as any)?.unidade_medida,
+                        estoque_minimo: Number((item.produtos as any)?.estoque_minimo ?? 0),
                         quantidade_total: 0,
                         reservado_total: 0,
                         localizacoes: [],
@@ -114,15 +299,23 @@ export async function executeToolCall(
                 grouped[sku].quantidade_total += Number(item.quantidade ?? 0);
                 grouped[sku].reservado_total += Number(item.reservado ?? 0);
                 grouped[sku].localizacoes.push({
-                    codigo: item.localizacoes?.codigo,
-                    tipo: item.localizacoes?.tipo,
+                    codigo: (item.localizacoes as any)?.codigo ?? "N/A",
+                    tipo: (item.localizacoes as any)?.tipo,
                     quantidade: Number(item.quantidade),
                 });
             }
 
+            const produtosAgrupados = Object.values(grouped);
+            const truncado = (estoqueData?.length ?? 0) >= QUERY_LIMIT;
+
             return {
-                total_registros: Object.keys(grouped).length,
-                produtos: Object.values(grouped),
+                timestamp_consulta: new Date().toISOString(),
+                total_registros: produtosAgrupados.length,
+                truncado,
+                ...(truncado && {
+                    mensagem: `Exibindo os primeiros ${QUERY_LIMIT} registros de estoque. Use filtros (categoria, sku, almoxarifado) para refinar a busca.`,
+                }),
+                produtos: produtosAgrupados,
             };
         }
 
@@ -130,6 +323,7 @@ export async function executeToolCall(
         case "get_kpi_metrics": {
             const period = (args.period as string) ?? "month";
             const startDate = getPeriodStartDate(period);
+            const t0 = Date.now();
 
             // Busca movimentações do período
             const { data: movimentacoes, error: movError } = await supabase
@@ -137,14 +331,20 @@ export async function executeToolCall(
                 .select("tipo, quantidade, realizada_em, produto_id, produtos!inner(sku, nome, categoria)")
                 .gte("realizada_em", startDate.toISOString());
 
-            if (movError) return { error: movError.message };
+            if (movError) {
+                console.error("[Tool:get_kpi_metrics] Erro movimentacoes:", movError.message);
+                return { error: "Erro ao buscar movimentações para KPIs." };
+            }
 
             // Busca estoque atual
             const { data: estoqueAtual, error: estError } = await supabase
                 .from("estoque_localizacao")
                 .select("quantidade, produto_id, produtos!inner(sku, nome, categoria, estoque_minimo)");
 
-            if (estError) return { error: estError.message };
+            if (estError) {
+                console.error("[Tool:get_kpi_metrics] Erro estoque:", estError.message);
+                return { error: "Erro ao buscar estoque para KPIs." };
+            }
 
             const movs = movimentacoes ?? [];
             const estoque = estoqueAtual ?? [];
@@ -257,6 +457,7 @@ export async function executeToolCall(
                 },
             };
 
+            console.log(`[Tool:get_kpi_metrics] ${Date.now() - t0}ms | period=${period}`);
             if (metric === "all") return { periodo: period, kpis: allKpis };
             if (metric === "accuracy") return { periodo: period, kpi: allKpis.acuracia, resumo: allKpis.resumo };
             if (metric === "ruptura") return { periodo: period, kpi: allKpis.ruptura, resumo: allKpis.resumo };
@@ -268,6 +469,7 @@ export async function executeToolCall(
 
         // ─── ALERTAS DE VALIDADE DE LOTES ────────────────────────
         case "get_lot_expiry_alerts": {
+            const t0 = Date.now();
             const daysAhead = (args.days_ahead as number) ?? 30;
             const targetDate = new Date();
             targetDate.setDate(targetDate.getDate() + daysAhead);
@@ -281,9 +483,14 @@ export async function executeToolCall(
                 .gte("data_validade", today)
                 .eq("bloqueado", false)
                 .gt("quantidade_atual", 0)
-                .order("data_validade", { ascending: true });
+                .order("data_validade", { ascending: true })
+                .limit(100);
 
-            if (error) return { error: error.message };
+            console.log(`[Tool:get_lot_expiry_alerts] ${Date.now() - t0}ms | days_ahead=${daysAhead}`);
+            if (error) {
+                console.error("[Tool:get_lot_expiry_alerts] Erro Supabase:", error.message);
+                return { error: "Erro ao buscar alertas de lotes. Tente novamente." };
+            }
 
             let result = data ?? [];
 
@@ -313,6 +520,7 @@ export async function executeToolCall(
 
         // ─── HISTÓRICO DE MOVIMENTAÇÕES ──────────────────────────
         case "get_movement_history": {
+            const t0 = Date.now();
             const period = (args.period as string) ?? "week";
             const startDate = getPeriodStartDate(period);
 
@@ -335,7 +543,11 @@ export async function executeToolCall(
             }
 
             const { data, error } = await query;
-            if (error) return { error: error.message };
+            console.log(`[Tool:get_movement_history] ${Date.now() - t0}ms | period=${period}`);
+            if (error) {
+                console.error("[Tool:get_movement_history] Erro Supabase:", error.message);
+                return { error: "Erro ao buscar histórico de movimentações. Tente novamente." };
+            }
 
             let result = data ?? [];
 
@@ -364,19 +576,29 @@ export async function executeToolCall(
 
         // ─── OCUPAÇÃO DE LOCALIZAÇÕES ────────────────────────────
         case "get_location_occupancy": {
+            const t0 = Date.now();
             // Busca localizações
             const { data: localizacoes, error: locError } = await supabase
                 .from("localizacoes")
-                .select("id, codigo, tipo, capacidade_maxima, ativo, almoxarifado_id, rua, prateleira, nivel, box, descricao");
+                .select("id, codigo, tipo, capacidade_maxima, ativo, almoxarifado_id, rua, prateleira, nivel, box, descricao")
+                .limit(QUERY_LIMIT);
 
-            if (locError) return { error: locError.message };
+            if (locError) {
+                console.error("[Tool:get_location_occupancy] Erro localizacoes:", locError.message);
+                return { error: "Erro ao buscar localizações. Tente novamente." };
+            }
 
             // Busca estoque por localização
             const { data: estoqueData, error: estError } = await supabase
                 .from("estoque_localizacao")
-                .select("localizacao_id, quantidade");
+                .select("localizacao_id, quantidade")
+                .limit(QUERY_LIMIT);
 
-            if (estError) return { error: estError.message };
+            console.log(`[Tool:get_location_occupancy] ${Date.now() - t0}ms`);
+            if (estError) {
+                console.error("[Tool:get_location_occupancy] Erro estoque:", estError.message);
+                return { error: "Erro ao buscar ocupação de estoque. Tente novamente." };
+            }
 
             // Agrupa estoque por localização
             const estoquePorLoc: Record<string, number> = {};
@@ -430,6 +652,7 @@ export async function executeToolCall(
 
         // ─── RELATÓRIO DE DIVERGÊNCIAS ───────────────────────────
         case "get_divergences_report": {
+            const t0 = Date.now();
             const period = (args.period as string) ?? "week";
             const startDate = getPeriodStartDate(period);
 
@@ -441,14 +664,19 @@ export async function executeToolCall(
           produtos (sku, nome, categoria)
         `)
                 .gte("data_criacao", startDate.toISOString())
-                .order("data_criacao", { ascending: false });
+                .order("data_criacao", { ascending: false })
+                .limit(100);
 
             if (args.active_only === true) {
                 query = query.eq("ativo", true);
             }
 
             const { data, error } = await query;
-            if (error) return { error: error.message };
+            console.log(`[Tool:get_divergences_report] ${Date.now() - t0}ms | period=${period}`);
+            if (error) {
+                console.error("[Tool:get_divergences_report] Erro Supabase:", error.message);
+                return { error: "Erro ao buscar relatório de divergências. Tente novamente." };
+            }
 
             return {
                 total_alertas: (data ?? []).length,
@@ -470,6 +698,7 @@ export async function executeToolCall(
 
         // ─── PRODUTIVIDADE DE PICKING ────────────────────────────
         case "get_picking_performance": {
+            const t0 = Date.now();
             const period = (args.period as string) ?? "week";
             const startDate = getPeriodStartDate(period);
 
@@ -480,14 +709,19 @@ export async function executeToolCall(
           profiles (id, nome_completo)
         `)
                 .eq("tipo", "saida")
-                .gte("realizada_em", startDate.toISOString());
+                .gte("realizada_em", startDate.toISOString())
+                .limit(500);
 
             if (args.user_id) {
                 query = query.eq("realizada_por", args.user_id as string);
             }
 
             const { data, error } = await query;
-            if (error) return { error: error.message };
+            console.log(`[Tool:get_picking_performance] ${Date.now() - t0}ms | period=${period}`);
+            if (error) {
+                console.error("[Tool:get_picking_performance] Erro Supabase:", error.message);
+                return { error: "Erro ao buscar dados de picking. Tente novamente." };
+            }
 
             const movs = data ?? [];
 
@@ -524,6 +758,7 @@ export async function executeToolCall(
         }
 
         default:
-            return { error: `Tool desconhecida: ${name}` };
+            console.error(`[Executor] Tool desconhecida chamada: ${name}`);
+            return { error: `Ferramenta '${name}' não reconhecida pelo executor.` };
     }
 }
