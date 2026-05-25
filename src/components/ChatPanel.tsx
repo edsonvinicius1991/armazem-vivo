@@ -231,8 +231,9 @@ export const ChatPanel: React.FC = () => {
   const formatTime = (dateInput: any) => {
     try {
       if (!dateInput) return "";
-      const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
+      const date = new Date(dateInput);
       if (isNaN(date.getTime())) return "";
+      if (typeof date.toLocaleTimeString !== 'function') return "";
       return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     } catch (e) {
       return "";
